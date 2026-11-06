@@ -64,6 +64,9 @@ img { max-width: 100%; display: block; }
 .pin-submit:hover   { background: #0c4c42; }
 .pin-submit:disabled { opacity: .6; cursor: default; }
 .login-error { color: var(--alerta); font-size: 13px; margin-top: 10px; min-height: 18px; }
+.login-recordar { display:flex; align-items:flex-start; gap:8px; margin:12px 2px 0; text-align:left; font-size:12.5px; color:var(--suave); cursor:pointer; line-height:1.35; }
+.login-recordar input { margin-top:2px; flex:none; width:16px; height:16px; }
+.login-recordar small { display:block; font-size:11px; opacity:.85; }
 .login-link { margin-top: 14px; border: 0; background: none; color: var(--suave); font-size: 12px; cursor: pointer; text-decoration: underline; }
 
 /* ============================================================
@@ -297,6 +300,10 @@ main, .lista > * { min-width: 0; max-width: 100%; }
     <input class="pin-input" id="pin-input" type="password" inputmode="numeric"
            maxlength="8" placeholder="••••••" autocomplete="current-password"
            onkeydown="if(event.key==='Enter') loginPin()" />
+    <label class="login-recordar" for="recordar-chk">
+      <input type="checkbox" id="recordar-chk" />
+      <span>Recordarme en este dispositivo<small>30 días sin pedir el PIN. Úsalo solo en tu teléfono o computador personal.</small></span>
+    </label>
     <button class="pin-submit" id="pin-submit" onclick="loginPin()" disabled>Entrar</button>
     <p class="login-error" id="login-error"></p>
     <button class="login-link" id="cambiar-agente" onclick="cambiarAgente()" hidden>¿No eres tú? Cambiar de agente</button>
@@ -561,6 +568,10 @@ function codigoDeUrl() {
 function codigoGuardado() {
   try { return localStorage.getItem(AGENTE_KEY) || ''; } catch (e) { return ''; }
 }
+function dispKey() { return 'lc_disp_' + (AGENTE ? AGENTE.codigo : ''); }
+function dispGuardado() { try { return localStorage.getItem(dispKey()) || ''; } catch (e) { return ''; } }
+function dispGuardar(t) { try { localStorage.setItem(dispKey(), t); } catch (e) {} }
+function dispBorrar() { try { localStorage.removeItem(dispKey()); } catch (e) {} }
 function sesionKey() { return 'lc_sesion_' + (AGENTE ? AGENTE.codigo : ''); }
 
 /** Carga la ficha del agente. Deja AGENTE listo o lanza un error con mensaje para el usuario. */
@@ -628,7 +639,12 @@ function loginPin() {
     if (!r.ok) { var e = new Error(r.error || 'PIN incorrecto.'); e.pin = true; throw e; }
     S.sesionId = r.sesionId;
     try { sessionStorage.setItem(sesionKey(), r.sesionId); } catch (e) {}
-    return cargarSesion();
+    var quiere = document.getElementById('recordar-chk').checked;
+    if (!quiere) { dispBorrar(); return cargarSesion(); }
+    // Si falla el registro del dispositivo, igual se entra: solo no quedará recordado.
+    return api({ accion: 'recordarDispositivo' }).then(function (d) {
+      if (d && d.ok && d.dispositivo) dispGuardar(d.dispositivo);
+    }).catch(function () {}).then(cargarSesion);
   }).then(entrar).catch(function (e) {
     if (e && e.pin) {
       var inp = document.getElementById('pin-input');
@@ -641,8 +657,31 @@ function loginPin() {
 }
 
 function cerrarSesion() {
-  try { sessionStorage.removeItem(sesionKey()); } catch (e) {}
-  location.reload();
+  var disp = dispGuardado();
+  var fin = function () {
+    dispBorrar();
+    try { sessionStorage.removeItem(sesionKey()); } catch (e) {}
+    location.reload();
+  };
+  if (!disp) { fin(); return; }
+  // Cerrar sesión a propósito = dejar de confiar en este dispositivo.
+  api({ accion: 'olvidarDispositivo', dispositivo: disp }, true).then(fin, fin);
+}
+
+/** Cambia el token del dispositivo por una sesión nueva (8 h). Devuelve true si lo logró. */
+function reanudarDispositivo() {
+  var disp = dispGuardado();
+  if (!disp) return Promise.resolve(false);
+  return api({ accion: 'reanudar', dispositivo: disp }, true).then(function (r) {
+    if (r && r.ok && r.sesionId) {
+      S.sesionId = r.sesionId;
+      try { sessionStorage.setItem(sesionKey(), r.sesionId); } catch (e) {}
+      return true;
+    }
+    // Vencido, revocado o PIN cambiado: se olvida y se pide el PIN.
+    dispBorrar();
+    return false;
+  }).catch(function () { return false; });   // sin conexión: no se borra, se pedirá el PIN esta vez
 }
 
 /** Pide al script el plan, las funciones activas y los datos del cliente. */
@@ -675,9 +714,18 @@ function arrancar() {
   resolverAgente(codigo).then(function () {
     var guardada = '';
     try { guardada = sessionStorage.getItem(sesionKey()) || ''; } catch (e) {}
-    if (!guardada) { mostrarLogin(''); return; }
-    S.sesionId = guardada;
-    return cargarSesion().then(entrar, function (e) { mostrarLogin(e && e.message); });
+    var intentar = function (sesion) {
+      S.sesionId = sesion;
+      return cargarSesion().then(entrar);
+    };
+    var viaDispositivo = function () {
+      return reanudarDispositivo().then(function (ok) {
+        if (!ok) { mostrarLogin(''); return; }
+        return intentar(S.sesionId).catch(function (e) { mostrarLogin(e && e.message); });
+      });
+    };
+    if (guardada) return intentar(guardada).catch(viaDispositivo);
+    return viaDispositivo();
   }).catch(function (e) {
     AGENTE = null;
     mostrarLogin(e && e.message);
