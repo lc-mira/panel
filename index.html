@@ -858,6 +858,31 @@ function toast(txt, dur) {
   clearTimeout(tToast); tToast = setTimeout(function(){t.hidden=true;}, dur||4000);
 }
 var avisoSalida = 0;
+/* ---- Botón "atrás" del celular: cierra la hoja abierta en vez de salir del panel ---- */
+var capaHist = false;   // true = hay una entrada de historial creada por una hoja abierta
+function histAbrir() {
+  if (capaHist) return;
+  try { history.pushState({ lcCapa: 1 }, ''); capaHist = true; } catch (e) {}
+}
+function histCerrar() {
+  if (!capaHist) return;
+  capaHist = false;
+  try { history.back(); } catch (e) {}
+}
+window.addEventListener('popstate', function () {
+  if (!capaHist) return;          // no es una hoja nuestra
+  capaHist = false;               // el navegador ya retrocedió una entrada
+  var inm = !document.getElementById('capa').hidden;
+  var req = !document.getElementById('capa-req').hidden;
+  if (inm) {
+    cerrarInmueble();             // si hay cambios sin guardar, avisa y NO cierra
+    if (!document.getElementById('capa').hidden) histAbrir();
+  } else if (req) {
+    cerrarReq();
+    if (!document.getElementById('capa-req').hidden) histAbrir();
+  }
+});
+
 function confirmarSalida() {
   if (Date.now() - avisoSalida < 4000) return true;
   avisoSalida = Date.now();
@@ -1011,6 +1036,7 @@ function abrirInmueble(fila) {
   _fotosPintadas = null;
   document.getElementById('capa').hidden = false;
   document.body.style.overflow = 'hidden';
+  histAbrir();
 
   if (!fila) {
     S.edicion = { fila: null, huella: '', vals: {}, auto: {}, carpetaId: 'nuevo-'+Date.now() };
@@ -1215,6 +1241,7 @@ function cerrarInmueble() {
   document.getElementById('capa').hidden = true;
   document.body.style.overflow = '';
   S.edicion = null;
+  histCerrar();
 }
 
 /* ---- Guardar inmueble ---- */
@@ -1231,6 +1258,7 @@ function guardarInmueble() {
   S.edicion = null;
   document.getElementById('capa').hidden = true;
   document.body.style.overflow = '';
+  histCerrar();
   toast(ed.fila ? 'Cambios guardados.' : 'Inmueble agregado.');
 
   enCola(api({ accion: 'guardarInmueble', fila: ed.fila, campos: c.cambios })).then(function(r){
@@ -1251,6 +1279,7 @@ function borrarInmueble() {
   S.edicion = null;
   document.getElementById('capa').hidden = true;
   document.body.style.overflow = '';
+  histCerrar();
   toast('Inmueble borrado.');
   enCola(api({ accion: 'eliminarInmueble', fila: ed.fila })).then(function(r){
     if (!r.ok) throw new Error(r.error||'Error al borrar');
@@ -1847,6 +1876,7 @@ function abrirReq(f, prellenado) {
   _pintarCamposReq();
   document.getElementById('capa-req').hidden = false;
   document.body.style.overflow = 'hidden';
+  histAbrir();
 }
 
 function _pintarCamposReq() {
@@ -1865,6 +1895,7 @@ function cerrarReq() {
   document.getElementById('capa-req').hidden = true;
   document.body.style.overflow = '';
   S.edReq = null;
+  histCerrar();
 }
 
 function guardarReq() {
