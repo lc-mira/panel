@@ -536,7 +536,7 @@ var AGENTE_KEY = 'lc_agente';
 /* ============================================================
    CONFIG (se llena al iniciar sesión, con la acción "sesion" del script)
    ============================================================ */
-var CFG = { fichaUrl: '', catalogoUrl: '', espejoId: '', version: '' };
+var CFG = { fichaUrl: '', catalogoUrl: '', espejoId: '', version: '', ciudad: '' };
 var AGENTE = null;     // { codigo, nombre, scriptUrl } — sale de agentes/<codigo>.json
 var F = {};            // funciones activas según el plan (etapasLeads, importador, requerimientos, …)
 
@@ -693,6 +693,7 @@ function cargarSesion() {
     F = r.funciones || {};
     var c = r.config || {};
     CFG.fichaUrl    = c.fichaUrl    || '';
+    CFG.ciudad      = c.ciudad      || '';
     CFG.catalogoUrl = c.catalogoUrl || '';
     CFG.espejoId    = c.espejoId    || '';
     CFG.version     = c.version     || '';
@@ -928,9 +929,9 @@ function _procesarPortafolio(r) {
   var enc = r.encabezados || [];
   // Construir mapa clave→índice usando el mismo IMP_mapa_ lógico del extractor
   var MAPA_CLAVES = {
-    id:'id', tipo:'tipo', proyecto:'proyecto', barrio:'barrio',
+    id:'id', tipo:'tipo', proyecto:'proyecto', barrio:'barrio', ciudad:'ciudad',
     precio:'precio', canon:'canon', area:'area', habitaciones:'habitaciones',
-    banos:'baños', parqueadero:'parqueadero', piso:'piso', estrato:'estrato',
+    banos:'baños', parqueadero:'parqueadero', piso:'piso', estrato:'estrato', administracion:'administracion', ascensor:'ascensor',
     estado:'estado', servicio:'servicio', credito:'credito', observaciones:'observaciones',
     link:'link', fotos:'fotos', captacion:'captacion',
     encargado:'encargado', celular:'celular',
@@ -985,7 +986,7 @@ function pintarInmuebles() {
   var q = norm(document.getElementById('buscar-inm').value);
   var filas = S.inm.filas.filter(function(f) {
     if (S.filtroInm !== '*' && (f.estado||'Sin estado') !== S.filtroInm) return false;
-    return !q || norm([f.tipo,f.barrio,f.proyecto,f.id,f.encargado].join(' ')).indexOf(q)!==-1;
+    return !q || norm([f.tipo,f.barrio,f.ciudad,f.proyecto,f.id,f.encargado].join(' ')).indexOf(q)!==-1;
   });
   var cont = document.getElementById('lista-inm');
   if (!filas.length) { cont.innerHTML = '<p class="vacio">No hay inmuebles con ese filtro.</p>'; return; }
@@ -994,7 +995,7 @@ function pintarInmuebles() {
     var det = [f.habitaciones?f.habitaciones+' hab':'', f.area?f.area+' m²':'', f.id].filter(Boolean).join(' · ');
     return '<button class="inm" data-fila="'+f._fila+'">' +
       (f._img ? '<img class="inm-img" referrerpolicy="no-referrer" loading="lazy" src="'+esc(f._img)+'" alt="">' : '<span class="inm-sinfoto">Sin foto</span>') +
-      '<span class="info"><div class="tit">'+esc([f.tipo,f.barrio].filter(Boolean).join(' · ')||'Sin datos')+'</div>' +
+      '<span class="info"><div class="tit">'+esc([f.tipo,f.barrio,f.ciudad].filter(Boolean).join(' · ')||'Sin datos')+'</div>' +
       '<div class="sub">'+esc([f.proyecto,det].filter(Boolean).join(' — '))+'</div>' +
       (precio ? '<div class="precio-m">'+esc(precio)+'</div>' : '') +
       (f.estado ? '<span class="etq'+(/disponible/i.test(f.estado)?' disp':'')+'">'+esc(f.estado)+'</span>' : '') +
@@ -1009,7 +1010,7 @@ function pintarInmuebles() {
 /* ============================================================
    INMUEBLES — FORMULARIO
    ============================================================ */
-var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','estado','servicio','credito','observaciones','link'];
+var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','link'];
 var CAMPOS_PRIVADOS = ['encargado','celular','notasPrivadas'];
 var CAMPOS_COMISION = ['comision'];
 var CAMPOS_READONLY = ['id'];
@@ -1020,7 +1021,8 @@ var OPCIONES = {
   servicio: ['Venta','Arriendo','Venta y Arriendo'],
   captacion: ['Propio','Colega'],
   credito: ['Sí','No','Aplica subsidio'],
-  parqueadero: ['No tiene','Comunitario','Privado']
+  parqueadero: ['No tiene','Comunitario','Privado'],
+  ascensor: ['Sí','No']
 };
 
 function abrirInmueble(fila) {
@@ -1103,10 +1105,14 @@ function _renderCampos(contenedorId, claves, vals, privados) {
       control = '<textarea id="f-'+clave+'">'+esc(v)+'</textarea>';
     } else if (clave === 'observaciones') {
       control = '<textarea id="f-'+clave+'">'+esc(v)+'</textarea>';
+    } else if (clave === 'ciudad') {
+      var vc = v || ((S.edicion && !S.edicion.fila) ? _ciudadPorDefecto() : '');
+      control = '<input id="f-'+clave+'" type="text" list="lista-ciudades" autocomplete="off" value="'+esc(vc)+'">' +
+        '<datalist id="lista-ciudades">'+_ciudadesConocidas().map(function(c){ return '<option value="'+esc(c)+'">'; }).join('')+'</datalist>';
     } else if (ops) {
       var optHtml = '<option value=""></option>' + ops.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>'; }).join('');
       control = '<select id="f-'+clave+'">'+optHtml+'</select>';
-    } else if (clave==='precio'||clave==='canon'||clave==='area'||clave==='habitaciones'||clave==='banos'||clave==='piso'||clave==='estrato') {
+    } else if (clave==='precio'||clave==='canon'||clave==='area'||clave==='habitaciones'||clave==='banos'||clave==='piso'||clave==='estrato'||clave==='administracion') {
       control = '<input id="f-'+clave+'" type="text" inputmode="decimal" value="'+esc(v)+'">';
     } else {
       control = '<input id="f-'+clave+'" type="text" value="'+esc(v)+'">';
@@ -1129,12 +1135,38 @@ function _renderCampos(contenedorId, claves, vals, privados) {
   });
 }
 
+/** Ciudades ya usadas en el portafolio (más frecuentes primero) + las habituales. */
+function _ciudadesConocidas() {
+  var cuenta = {};
+  ((S.inm && S.inm.filas) || []).forEach(function(f){ if (f.ciudad) cuenta[f.ciudad] = (cuenta[f.ciudad]||0)+1; });
+  var usadas = Object.keys(cuenta).sort(function(a,b){ return cuenta[b]-cuenta[a]; });
+  var res = usadas.slice();
+  [CFG.ciudad,'Cali','Palmira','Jamundí'].forEach(function(c){ if (c && res.indexOf(c)===-1) res.push(c); });
+  return res;
+}
+/** Ciudad que se propone para un inmueble nuevo: la más usada del portafolio, o la del agente. */
+function _ciudadPorDefecto() {
+  var c = _ciudadesConocidas();
+  return (c[0] || CFG.ciudad || '');
+}
+/** Administración: conjunto cerrado (apartamento, apartaestudio, casa en conjunto). Ascensor: apartamentos. */
+function _visibilidadCampos() {
+  var tipo = valorCampo('tipo');
+  var admin = !tipo || /apartamento|apartaestudio|casa en conjunto/i.test(tipo);
+  var asc   = !tipo || /apartamento|apartaestudio/i.test(tipo);
+  [['administracion', admin], ['ascensor', asc]].forEach(function(par){
+    var div = document.querySelector('#campos-publicos .campo[data-clave="'+par[0]+'"]');
+    if (div) div.style.display = par[1] ? '' : 'none';
+  });
+}
+
 function _tituloLabel(clave) {
   var m = {
     tipo:'Tipo', proyecto:'Proyecto / Nombre', barrio:'Barrio / Zona',
     precio:'Precio de venta', canon:'Precio arriendo (mes)',
     area:'Área m²', habitaciones:'Habitaciones', banos:'Baños',
     parqueadero:'Parqueadero(s)', piso:'Piso', estrato:'Estrato',
+    ciudad:'Ciudad', administracion:'Administración (COP/mes)', ascensor:'Ascensor',
     estado:'Estado', servicio:'Servicio', credito:'Aplica crédito',
     observaciones:'Observaciones públicas', link:'Link ficha externa',
     captacion:'Captación', encargado:'Encargado', celular:'Celular encargado',
@@ -1148,6 +1180,9 @@ function _pista(clave) {
   var m = {
     precio: 'Solo números, ej. 245000000',
     canon:  'Solo números, ej. 2500000',
+    ciudad: 'Cali, Palmira, Jamundí… escribe otra si hace falta.',
+    administracion: 'Solo conjunto cerrado. Déjalo vacío si no paga administración.',
+    ascensor: 'Solo apartamentos.',
     observaciones: 'Pública — la ven los visitantes del catálogo. Teléfonos y correos se ocultan solos.',
     notasPrivadas: 'Privada — solo la ven los administradores. Puedes anotar saldo de hipoteca, condiciones, etc.',
     comision: 'En pesos. Se registra cuando el negocio está cerrado.',
@@ -1197,6 +1232,7 @@ function valorCampo(clave) {
 function marcarCambios() {
   var ed = S.edicion;
   if (!ed) return;
+  _visibilidadCampos();
   var n = 0;
   var todos = CAMPOS_PUBLICOS.concat(CAMPOS_PRIVADOS).concat(CAMPOS_COMISION);
   todos.forEach(function(clave){
@@ -1525,7 +1561,7 @@ function llenarDesdeUrl() {
     // Fotos
     if (d.fotos && d.fotos.length) { _setFotos(d.fotos); n++; }
     // Campos
-    ['tipo','proyecto','barrio','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','estado','servicio','credito','observaciones','encargado','celular','link'].forEach(function(clave){
+    ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','encargado','celular','link'].forEach(function(clave){
       var v = d[clave];
       if (v == null || v === '') return;
       var el = document.getElementById('f-'+clave);
