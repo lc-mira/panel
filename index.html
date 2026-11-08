@@ -552,7 +552,7 @@ var S = {
   req:        null,
   edicion:    null,  // {fila, huella, iniciales, auto, carpeta}
   edReq:      null,
-  filtroInm:  '',
+  filtroInm:  'Disponible',   // por defecto solo Disponibles; '*' = Todos
   filtroLead: 'Todos',
   filtroTemp: '',
   filtroReq:  'Activas',
@@ -940,9 +940,14 @@ function _procesarPortafolio(r) {
 function pintarChipsInm() {
   var cuenta = {};
   S.inm.filas.forEach(function(f){ var e=f.estado||'Sin estado'; cuenta[e]=(cuenta[e]||0)+1; });
-  var claves = Object.keys(cuenta).sort(function(a,b){return cuenta[b]-cuenta[a];});
-  var html = '<button class="chip" aria-pressed="'+(!S.filtroInm)+'" data-v="">Todos</button>';
-  claves.forEach(function(k){ html += '<button class="chip" aria-pressed="'+(S.filtroInm===k)+'" data-v="'+esc(k)+'">'+esc(k)+' · '+cuenta[k]+'</button>'; });
+  // Orden: Disponible, Vendido, los demás por cantidad y al final Todos.
+  var primeros = ['Disponible','Vendido'];
+  var otros = Object.keys(cuenta).filter(function(k){ return primeros.indexOf(k)===-1; })
+    .sort(function(a,b){return cuenta[b]-cuenta[a];});
+  var claves = primeros.concat(otros);
+  var html = '';
+  claves.forEach(function(k){ html += '<button class="chip" aria-pressed="'+(S.filtroInm===k)+'" data-v="'+esc(k)+'">'+esc(k)+' · '+(cuenta[k]||0)+'</button>'; });
+  html += '<button class="chip" aria-pressed="'+(S.filtroInm==='*')+'" data-v="*">Todos · '+S.inm.filas.length+'</button>';
   var cont = document.getElementById('chips-inm');
   cont.innerHTML = html;
   cont.querySelectorAll('.chip').forEach(function(b){
@@ -954,7 +959,7 @@ function pintarInmuebles() {
   if (!S.inm) return;
   var q = norm(document.getElementById('buscar-inm').value);
   var filas = S.inm.filas.filter(function(f) {
-    if (S.filtroInm && (f.estado||'Sin estado') !== S.filtroInm) return false;
+    if (S.filtroInm !== '*' && (f.estado||'Sin estado') !== S.filtroInm) return false;
     return !q || norm([f.tipo,f.barrio,f.proyecto,f.id,f.encargado].join(' ')).indexOf(q)!==-1;
   });
   var cont = document.getElementById('lista-inm');
