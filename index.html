@@ -193,6 +193,12 @@ main, .lista > * { min-width: 0; max-width: 100%; }
    ============================================================ */
 .capa { position: fixed; inset: 0; background: rgba(20,26,36,.45); z-index: 10; display: flex; justify-content: center; align-items: flex-start; padding: 24px 12px; overflow-y: auto; }
 .hoja { background: var(--papel); border-radius: 14px; width: 100%; max-width: 780px; box-shadow: 0 20px 50px rgba(0,0,0,.2); display: flex; flex-direction: column; max-height: calc(100vh - 48px); }
+.capa-aviso { z-index: 30; align-items: center; }
+.hoja-mini { max-width: 440px; }
+.hoja-mini .hoja-pie { flex-wrap: wrap; justify-content: flex-end; }
+.campo .fila-campo { display: flex; gap: 8px; }
+.campo .fila-campo input { flex: 1; min-width: 0; }
+.campo .fila-campo .btn { padding: 6px 12px; font-size: 13px; white-space: nowrap; }
 .hoja-cab { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--linea); }
 .hoja-cab h2 { margin: 0; font-size: 16px; }
 .cerrar { margin-left: auto; border: 0; background: none; font-size: 22px; cursor: pointer; color: var(--suave); }
@@ -514,6 +520,29 @@ main, .lista > * { min-width: 0; max-width: 100%; }
       <span class="msg" id="req-pie"></span>
       <button class="btn" onclick="cerrarReq()">Cancelar</button>
       <button class="btn btn-primario" id="req-guardar" onclick="guardarReq()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL — PREGUNTA DE COMISIÓN (al pasar un inmueble a Vendido / Arrendado)
+     ============================================================ -->
+<div class="capa capa-aviso" id="capa-comision" hidden>
+  <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="com-titulo">
+    <div class="hoja-cab"><h2 id="com-titulo">¿Cuánto fue la comisión?</h2></div>
+    <div class="hoja-cuerpo">
+      <p id="com-texto" style="font-size:13px;color:var(--suave);margin-bottom:12px"></p>
+      <div class="campo">
+        <label for="com-valor">Comisión (COP)</label>
+        <input id="com-valor" type="text" inputmode="numeric" autocomplete="off" placeholder="0"
+               oninput="formatearDineroInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();responderComision(false);}">
+        <span class="pista">En pesos, ej. 12.000.000. Si no hubo comisión, deja 0.</span>
+      </div>
+    </div>
+    <div class="hoja-pie">
+      <button class="btn" onclick="cancelarComision()">Cancelar cambio de estado</button>
+      <button class="btn" onclick="responderComision(true)">Sin comisión (0)</button>
+      <button class="btn btn-primario" onclick="responderComision(false)">Guardar comisión</button>
     </div>
   </div>
 </div>
@@ -843,9 +872,49 @@ function fotoUrl(u) {
 }
 function segUrl(u) { return /^https?:\/\//i.test(String(u||'')) ? String(u) : ''; }
 function formatPrecio(v) {
-  var n = Number(String(v||'').replace(/[^0-9.]/g,''));
+  var d = soloDigitos(v);
+  var n = d !== null ? Number(d) : Number(String(v||'').replace(/[^0-9.]/g,''));
   if (!n) return '';
   return '$' + n.toLocaleString('es-CO');
+}
+
+/* ---- Campos de dinero: separador de miles mientras se escribe ----
+   En pantalla se ve 245.000.000; al guardar se envía solo 245000000. */
+var CAMPOS_DINERO = ['precio','canon','administracion','comision'];
+
+/** Deja solo los dígitos de un valor de dinero ("$ 245.000.000,00" → "245000000").
+ *  Devuelve null si es texto libre (ej. "Incluida"), que no se toca. */
+function soloDigitos(v) {
+  var s = String(v == null ? '' : v).trim();
+  if (!/^[\s$\d.,]*$/.test(s)) return null;
+  s = s.replace(/[.,]\d{1,2}$/, '');                 // centavos (",00")
+  return s.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+}
+function conMiles(d) { return String(d).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+/** Cómo se muestra un valor de dinero dentro del campo. */
+function dineroVista(v) {
+  var d = soloDigitos(v);
+  return d === null ? String(v == null ? '' : v) : conMiles(d);
+}
+/** Valor comparable/guardable de un campo: dinero → solo dígitos; el resto → texto recortado. */
+function valorNormal(clave, v) {
+  v = String(v == null ? '' : v).trim();
+  if (CAMPOS_DINERO.indexOf(clave) !== -1) { var d = soloDigitos(v); if (d !== null) return d; }
+  return v;
+}
+/** Reformatea un campo de dinero al escribir sin mover el cursor de sitio. */
+function formatearDineroInput(el) {
+  var texto = el.value;
+  var pos = el.selectionStart == null ? texto.length : el.selectionStart;
+  var antes = texto.slice(0, pos).replace(/\D/g, '').length;   // dígitos a la izquierda del cursor
+  var d = texto.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  var nuevo = conMiles(d);
+  if (nuevo === texto) return;
+  el.value = nuevo;
+  antes = Math.min(antes, d.length);
+  var i = 0, n = 0;
+  if (antes > 0) { for (i = 0; i < nuevo.length; i++) { if (/\d/.test(nuevo.charAt(i)) && ++n === antes) { i++; break; } } }
+  try { el.setSelectionRange(i, i); } catch (e) {}
 }
 function waUrl(tel) {
   var d = String(tel||'').replace(/\D/g,'');
@@ -873,6 +942,9 @@ function histCerrar() {
 window.addEventListener('popstate', function () {
   if (!capaHist) return;          // no es una hoja nuestra
   capaHist = false;               // el navegador ya retrocedió una entrada
+  if (!document.getElementById('capa-comision').hidden) {   // pregunta de comisión abierta: cancela el cambio de estado
+    cancelarComision(); histAbrir(); return;
+  }
   var inm = !document.getElementById('capa').hidden;
   var req = !document.getElementById('capa-req').hidden;
   if (inm) {
@@ -925,30 +997,63 @@ function cargarInmuebles() {
   });
 }
 
+/** Reglas para reconocer cada columna de la hoja por su encabezado (mismo orden y espíritu que
+ *  IMP_CAMPOS_ del script: el primer encabezado que calza con una regla se queda con ella).
+ *  "h" llega sin tildes ni mayúsculas. Son flexibles a propósito: "Aplica crédito", "Nº de piso",
+ *  "Municipio" también se reconocen. */
+var REGLAS_COLUMNAS = [
+  ['id',            function(h){ return h === 'id'; }],
+  ['captacion',     function(h){ return h.indexOf('captac') === 0; }],
+  ['tipo',          function(h){ return h.indexOf('tipo') === 0; }],
+  ['proyecto',      function(h){ return h.indexOf('proyecto') === 0 || h.indexOf('nombre') === 0; }],
+  ['barrio',        function(h){ return h.indexOf('barrio') === 0 || h.indexOf('zona') === 0; }],
+  ['ciudad',        function(h){ return h.indexOf('ciudad') !== -1 || h.indexOf('municipio') !== -1; }],
+  ['precio',        function(h){ return h.indexOf('precio') === 0; }],
+  ['canon',         function(h){ return h.indexOf('canon') === 0 || (h.indexOf('arriendo') === 0 && h.indexOf('precio') === -1); }],
+  ['area',          function(h){ return h.indexOf('area') === 0; }],
+  ['habitaciones',  function(h){ return h.indexOf('habitacion') === 0 || h.indexOf('alcoba') === 0; }],
+  ['banos',         function(h){ return h.indexOf('bano') === 0; }],
+  ['parqueadero',   function(h){ return h.indexOf('parqueadero') === 0 || h.indexOf('garaje') === 0; }],
+  ['piso',          function(h){ return (h.indexOf('piso') !== -1 && h.indexOf('precio') === -1) || h.indexOf('nivel') === 0; }],
+  ['estrato',       function(h){ return h.indexOf('estrato') === 0; }],
+  ['administracion',function(h){ return h.indexOf('administracion') === 0 || h.indexOf('admon') === 0; }],
+  ['ascensor',      function(h){ return h.indexOf('ascensor') === 0; }],
+  ['estado',        function(h){ return h.indexOf('estado') === 0; }],
+  ['servicio',      function(h){ return h.indexOf('servicio') === 0; }],
+  ['credito',       function(h){ return h.indexOf('credito') !== -1 || h.indexOf('aplica') === 0; }],
+  ['observaciones', function(h){ return h.indexOf('observacion') === 0 || h.indexOf('obs') === 0; }],
+  ['link',          function(h){ return h.indexOf('link') === 0; }],
+  ['fotos',         function(h){ return h.indexOf('fotos') !== -1 || h.indexOf('imagen') !== -1 || h.indexOf('foto') === 0; }],
+  ['encargado',     function(h){ return h.indexOf('encargado') === 0; }],
+  ['celular',       function(h){ return h.indexOf('celular') === 0; }],
+  ['notasPrivadas', function(h){ return h.indexOf('nota') === 0; }],
+  ['documentos',    function(h){ return h.indexOf('documento') === 0; }],
+  ['comision',      function(h){ return h.indexOf('comision') === 0; }]
+];
+
 function _procesarPortafolio(r) {
   var enc = r.encabezados || [];
-  // Construir mapa clave→índice usando el mismo IMP_mapa_ lógico del extractor
-  var MAPA_CLAVES = {
-    id:'id', tipo:'tipo', proyecto:'proyecto', barrio:'barrio', ciudad:'ciudad',
-    precio:'precio', canon:'canon', area:'area', habitaciones:'habitaciones',
-    banos:'baños', parqueadero:'parqueadero', piso:'piso', estrato:'estrato', administracion:'administracion', ascensor:'ascensor',
-    estado:'estado', servicio:'servicio', credito:'credito', observaciones:'observaciones',
-    link:'link', fotos:'fotos', captacion:'captacion',
-    encargado:'encargado', celular:'celular',
-    notasPrivadas:'notas privadas', documentos:'documentos', comision:'comision'
-  };
-  var idx = {};
+  // clave → lista de columnas que calzan (por si la hoja repite un encabezado, se usa la que tenga dato)
+  var cols = {};
   enc.forEach(function(h, i) {
-    var n = norm(h).replace(/\s+/g,'_');
-    Object.keys(MAPA_CLAVES).forEach(function(clave) {
-      if (idx[clave] !== undefined) return;
-      var pat = norm(MAPA_CLAVES[clave]).replace(/\s+/g,'_');
-      if (n === pat || n.indexOf(pat)===0) idx[clave] = i;
-    });
+    var n = norm(h).replace(/\s+/g, ' ').trim();
+    if (!n) return;
+    for (var j = 0; j < REGLAS_COLUMNAS.length; j++) {
+      if (REGLAS_COLUMNAS[j][1](n)) { (cols[REGLAS_COLUMNAS[j][0]] = cols[REGLAS_COLUMNAS[j][0]] || []).push(i); break; }
+    }
   });
+  var idx = {};
+  Object.keys(cols).forEach(function(clave) { idx[clave] = cols[clave][0]; });
+  var faltan = ['ciudad','piso','credito','administracion','ascensor'].filter(function(c){ return idx[c] === undefined; });
+  if (faltan.length) console.warn('Panel: columnas no encontradas en la hoja →', faltan.join(', '), '| encabezados:', enc);
+
   var filas = (r.filas || []).map(function(f, rowIdx) {
     var obj = { _fila: rowIdx + 2, _vals: f }; // fila 2-based para la hoja
-    Object.keys(idx).forEach(function(clave) { obj[clave] = String(f[idx[clave]]||'').trim(); });
+    Object.keys(cols).forEach(function(clave) {
+      var v = '';
+      for (var k = 0; k < cols[clave].length && !v; k++) v = String(f[cols[clave][k]] || '').trim();
+      obj[clave] = v;
+    });
     // Primera URL de fotos = imagen principal de la tarjeta
     if (obj.fotos) {
       var urls = obj.fotos.split(/[\s,]+/).map(fotoUrl).filter(Boolean);
@@ -1041,7 +1146,7 @@ function abrirInmueble(fila) {
   histAbrir();
 
   if (!fila) {
-    S.edicion = { fila: null, huella: '', vals: {}, auto: {}, carpetaId: 'nuevo-'+Date.now() };
+    S.edicion = { fila: null, huella: '', vals: {}, auto: {}, carpetaId: 'nuevo-'+Date.now(), estadoOriginal: '' };
     document.getElementById('origen').hidden = false;
     document.getElementById('formulario').hidden = true;
     document.getElementById('hoja-titulo').textContent = 'Nuevo inmueble';
@@ -1056,7 +1161,7 @@ function abrirInmueble(fila) {
   // Buscar en estado local
   var f = S.inm.filas.filter(function(x){return x._fila===fila;})[0];
   if (!f) return;
-  S.edicion = { fila: fila, huella: '', vals: f, auto: {}, carpetaId: f.id||('fila-'+fila) };
+  S.edicion = { fila: fila, huella: '', vals: f, auto: {}, carpetaId: f.id||('fila-'+fila), estadoOriginal: f.estado||'' };
   _pintarFormulario();
   document.getElementById('btn-guardar').disabled = false;
   _mostrarLinkColega();
@@ -1099,8 +1204,8 @@ function _renderCampos(contenedorId, claves, vals, privados) {
     var control;
     if (readonly) {
       control = '<input id="f-'+clave+'" value="'+esc(v)+'" readonly>';
-    } else if (clave === 'comision') {
-      control = '<input id="f-'+clave+'" type="text" inputmode="numeric" value="'+esc(v)+'" placeholder="Ej: 12000000">';
+    } else if (CAMPOS_DINERO.indexOf(clave) !== -1) {
+      control = '<input id="f-'+clave+'" type="text" inputmode="numeric" autocomplete="off" value="'+esc(dineroVista(v))+'"'+(clave==='comision'?' placeholder="0"':'')+'>';
     } else if (clave === 'notasPrivadas') {
       control = '<textarea id="f-'+clave+'">'+esc(v)+'</textarea>';
     } else if (clave === 'observaciones') {
@@ -1112,7 +1217,7 @@ function _renderCampos(contenedorId, claves, vals, privados) {
     } else if (ops) {
       var optHtml = '<option value=""></option>' + ops.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>'; }).join('');
       control = '<select id="f-'+clave+'">'+optHtml+'</select>';
-    } else if (clave==='precio'||clave==='canon'||clave==='area'||clave==='habitaciones'||clave==='banos'||clave==='piso'||clave==='estrato'||clave==='administracion') {
+    } else if (clave==='area'||clave==='habitaciones'||clave==='banos'||clave==='piso'||clave==='estrato') {
       control = '<input id="f-'+clave+'" type="text" inputmode="decimal" value="'+esc(v)+'">';
     } else {
       control = '<input id="f-'+clave+'" type="text" value="'+esc(v)+'">';
@@ -1124,12 +1229,13 @@ function _renderCampos(contenedorId, claves, vals, privados) {
 
   cont.querySelectorAll('input,select,textarea').forEach(function(el){
     el.addEventListener('input', function(){
+      if (CAMPOS_DINERO.indexOf(el.id.replace(/^f-/, '')) !== -1) formatearDineroInput(el);
       marcarCambios();
       if (el.id==='f-link') _mostrarLinkColega();
     });
     el.addEventListener('change', function(){
       marcarCambios();
-      if (el.id==='f-estado') _mostrarComision();
+      if (el.id==='f-estado') _alCambiarEstado();
       if (el.id==='f-link') _mostrarLinkColega();
     });
   });
@@ -1178,14 +1284,14 @@ function _tituloLabel(clave) {
 
 function _pista(clave) {
   var m = {
-    precio: 'Solo números, ej. 245000000',
-    canon:  'Solo números, ej. 2500000',
+    precio: 'Escribe solo números: se separan solos con puntos (ej. 245.000.000).',
+    canon:  'Escribe solo números: se separan solos con puntos (ej. 2.500.000).',
     ciudad: 'Cali, Palmira, Jamundí… escribe otra si hace falta.',
-    administracion: 'Solo conjunto cerrado. Déjalo vacío si no paga administración.',
+    administracion: 'Solo conjunto cerrado. Déjalo vacío si no paga administración (ej. 350.000).',
     ascensor: 'Solo apartamentos.',
     observaciones: 'Pública — la ven los visitantes del catálogo. Teléfonos y correos se ocultan solos.',
     notasPrivadas: 'Privada — solo la ven los administradores. Puedes anotar saldo de hipoteca, condiciones, etc.',
-    comision: 'En pesos. Se registra cuando el negocio está cerrado.',
+    comision: 'En pesos (ej. 12.000.000). Puede ser 0.',
     id: 'El sistema lo asigna automáticamente.'
   };
   return m[clave] || '';
@@ -1195,7 +1301,63 @@ function _mostrarComision() {
   var el = document.getElementById('f-estado');
   var sec = document.getElementById('sec-comision');
   if (!el || !sec) return;
-  sec.hidden = !/vendido|alquilado|arrendado/i.test(el.value);
+  sec.hidden = !ESTADOS_CIERRE.test(el.value.trim());
+}
+
+/* ---- Pregunta obligatoria de comisión al cerrar un negocio ----
+   Al pasar un inmueble a Vendido o Arrendado siempre se pregunta cuánto fue la comisión.
+   El valor es opcional (puede ser 0), pero la pregunta no se puede saltar. */
+var ESTADOS_CIERRE = /^(vendido|arrendado|alquilado)$/i;
+var _comCb = null;
+
+function _alCambiarEstado() {
+  _mostrarComision();
+  var ed = S.edicion;
+  var sel = document.getElementById('f-estado');
+  if (!ed || !sel) return;
+  var nuevo = sel.value.trim();
+  var antes = String(ed.estadoOriginal || '').trim();
+  var previo = ed.estadoActual != null ? ed.estadoActual : antes;
+  if (ESTADOS_CIERRE.test(nuevo) && nuevo.toLowerCase() !== antes.toLowerCase()) {
+    preguntarComision(nuevo, function () { ed.estadoActual = nuevo; }, function () {
+      sel.value = previo;           // canceló: vuelve al estado anterior
+      _mostrarComision(); marcarCambios();
+    });
+  } else {
+    ed.estadoActual = nuevo;
+  }
+}
+
+function preguntarComision(estado, alResponder, alCancelar) {
+  if (!S.edicion) return;
+  _comCb = { estado: estado, ok: alResponder, cancelar: alCancelar };
+  var campo = document.getElementById('f-comision');
+  var inp = document.getElementById('com-valor');
+  inp.value = campo ? dineroVista(campo.value) : '';
+  document.getElementById('com-texto').textContent =
+    'Marcaste este inmueble como ' + estado + '. Anota cuánto fue la comisión (para tu declaración de renta).';
+  document.getElementById('capa-comision').hidden = false;
+  setTimeout(function () { inp.focus(); inp.select(); }, 50);
+}
+function responderComision(sinComision) {
+  var cb = _comCb;
+  if (!cb || !S.edicion) { cerrarComision(); return; }
+  var d = sinComision ? '0' : (soloDigitos(document.getElementById('com-valor').value) || '0');
+  var campo = document.getElementById('f-comision');
+  if (campo) campo.value = conMiles(d);
+  S.edicion.comisionRespondida = cb.estado;
+  cerrarComision();
+  _mostrarComision(); marcarCambios();
+  if (cb.ok) cb.ok();
+}
+function cancelarComision() {
+  var cb = _comCb;
+  cerrarComision();
+  if (cb && cb.cancelar) cb.cancelar();
+}
+function cerrarComision() {
+  _comCb = null;
+  document.getElementById('capa-comision').hidden = true;
 }
 
 function _mostrarLinkColega() {
@@ -1238,8 +1400,8 @@ function marcarCambios() {
   todos.forEach(function(clave){
     var el = document.getElementById('f-'+clave);
     if (!el) return;
-    var original = String((ed.vals&&ed.vals[clave])||'').trim();
-    var cambiado = el.value.trim() !== original;
+    var original = valorNormal(clave, ed.vals && ed.vals[clave]);
+    var cambiado = valorNormal(clave, el.value) !== original;
     var div = el.closest('.campo');
     if (div) div.classList.toggle('cambiado', cambiado);
     if (cambiado) n++;
@@ -1253,8 +1415,9 @@ function cambiosActuales() {
   todos.forEach(function(clave){
     var el = document.getElementById('f-'+clave);
     if (!el) return;
-    var original = String((S.edicion&&S.edicion.vals&&S.edicion.vals[clave])||'').trim();
-    if (el.value.trim() !== original) { cambios[clave] = el.value.trim(); n++; }
+    var original = valorNormal(clave, S.edicion && S.edicion.vals && S.edicion.vals[clave]);
+    var actual   = valorNormal(clave, el.value);
+    if (actual !== original) { cambios[clave] = actual; n++; }
   });
   // Incluir fotos si cambiaron
   var fotosActuales = _listaFotos().join('\n');
@@ -1286,6 +1449,14 @@ function guardarInmueble() {
   if (estadoEl && !estadoEl.value.trim()) {
     document.getElementById('hoja-mensaje').innerHTML = '<div class="mensaje error">Elige un Estado antes de guardar (Disponible, Reservado, Vendido, Arrendado o No disponible).</div>';
     estadoEl.focus();
+    return;
+  }
+  var estadoNuevo = estadoEl ? estadoEl.value.trim() : '';
+  if (S.edicion && ESTADOS_CIERRE.test(estadoNuevo) &&
+      estadoNuevo.toLowerCase() !== String(S.edicion.estadoOriginal || '').trim().toLowerCase() &&
+      S.edicion.comisionRespondida !== estadoNuevo) {
+    // Cambio a Vendido/Arrendado sin haber respondido aún por la comisión: se pregunta antes de guardar.
+    preguntarComision(estadoNuevo, function () { guardarInmueble(); }, null);
     return;
   }
   var c = cambiosActuales();
@@ -1570,7 +1741,7 @@ function llenarDesdeUrl() {
         var existe = Array.prototype.some.call(el.options,function(o){return o.value===v;});
         if (!existe) { var o=document.createElement('option'); o.textContent=v; el.appendChild(o); }
       }
-      el.value = v;
+      el.value = CAMPOS_DINERO.indexOf(clave) !== -1 ? dineroVista(v) : v;
       S.edicion.auto[clave] = true;
       var div = el.closest('.campo'); if(div) div.classList.add('auto');
       n++;
@@ -1899,7 +2070,7 @@ var REQ_CAMPOS = [
   {clave:'observaciones',titulo:'Qué busca (público)',ancho:true,tip:'Lo ven los colegas. No incluyas nombre ni teléfono.'},
   {clave:'cliente',titulo:'Nombre del cliente (privado)',tip:'Privado'},
   {clave:'telefono',titulo:'Teléfono del cliente (privado)',tip:'Privado'},
-  {clave:'contacto',titulo:'Último contacto (dd/mm)'}
+  {clave:'contacto',titulo:'Último contacto (dd/mm)',hoy:true}
 ];
 
 function abrirReq(f, prellenado) {
@@ -1922,9 +2093,24 @@ function _pintarCamposReq() {
     var ctrl;
     if (c.clave==='observaciones') ctrl='<textarea id="'+id+'">'+esc(v)+'</textarea>';
     else if (c.op) ctrl='<select id="'+id+'"><option value=""></option>'+c.op.map(function(o){return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>';
+    else if (c.hoy) ctrl='<div class="fila-campo"><input id="'+id+'" value="'+esc(v)+'" placeholder="dd/mm" />'+
+      '<button type="button" class="btn" onclick="ponerHoyReq(\''+id+'\')">Hoy</button></div>';
     else ctrl='<input id="'+id+'" value="'+esc(v)+'"'+(c.clave==='telefono'?' inputmode="tel"':c.clave==='presupuesto'?' inputmode="decimal"':'')+' />';
     return '<div class="campo'+(c.ancho?' ancho':'')+'"><label for="'+id+'">'+esc(c.titulo)+'</label>'+ctrl+(c.tip?'<span class="pista">'+esc(c.tip)+'</span>':'')+'</div>';
   }).join('');
+}
+
+/** Pone la fecha de hoy (dd/mm, hora de Colombia) en el campo "Último contacto". */
+function ponerHoyReq(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var p = {};
+  try {
+    new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit' })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+  } catch (e) {}
+  if (!p.day) { var d = new Date(); p.day = ('0' + d.getDate()).slice(-2); p.month = ('0' + (d.getMonth() + 1)).slice(-2); }
+  el.value = p.day + '/' + p.month;
 }
 
 function cerrarReq() {
