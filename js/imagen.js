@@ -88,14 +88,34 @@ window.FichaImagen = (function () {
     });
   }
 
-  async function cargarFoto(url) {
-    if (!url) return null;
+  /** Intenta una dirección: primero con fetch (CORS) y, si falla, como <img crossOrigin>. */
+  async function cargarUna(url) {
     try {
       const r = await fetch(url);
-      if (!r.ok) return null;
-      const u = URL.createObjectURL(await r.blob());
-      try { return await cargarImagen(u); } finally { URL.revokeObjectURL(u); }
+      if (r.ok) {
+        const u = URL.createObjectURL(await r.blob());
+        try { return await cargarImagen(u); } finally { URL.revokeObjectURL(u); }
+      }
+    } catch (e) { /* prueba el otro método */ }
+    try {
+      return await new Promise((ok, mal) => {
+        const i = new Image();
+        i.crossOrigin = 'anonymous';
+        i.onload = () => ok(i);
+        i.onerror = () => mal(new Error('sin CORS'));
+        i.src = url;
+      });
     } catch (e) { return null; }
+  }
+
+  /** Acepta una dirección o una lista en orden de preferencia; devuelve la primera que cargue. */
+  async function cargarFoto(urls) {
+    const lista = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
+    for (const u of lista) {
+      const img = await cargarUna(u);
+      if (img && img.width > 1) return img;
+    }
+    return null;
   }
 
   async function cargarIcono(svg) {
@@ -134,7 +154,7 @@ window.FichaImagen = (function () {
   /* =============================================================
    * Generación
    * @param {Object} v  vista pública (titulo, proyecto, ubicacion, precios, tarjetas, detalles, noDisponible)
-   * @param {Object} o  { fotoUrl, colores:{acento,oscuro,claro,suave}, dominio, iconoSvg(nombre,color) }
+   * @param {Object} o  { fotoUrls (lista en orden de preferencia) o fotoUrl, colores:{acento,oscuro,claro,suave}, dominio, iconoSvg(nombre,color) }
    * @returns {Promise<Blob>} PNG
    * ============================================================= */
   async function generar(v, o) {
@@ -145,7 +165,7 @@ window.FichaImagen = (function () {
       await Promise.all([400, 500, 600, 700].map(p => document.fonts.load(p + ' 32px Poppins')));
     } catch (e) { /* sigue con la fuente de respaldo */ }
 
-    const foto = await cargarFoto(o.fotoUrl);
+    const foto = await cargarFoto(o.fotoUrls || o.fotoUrl);
 
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
