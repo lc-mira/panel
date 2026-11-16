@@ -1174,7 +1174,7 @@ function pintarInmuebles() {
       '<div class="acc">' +
         '<button class="acc-p" data-acc="editar">✏️ Editar</button>' +
         '<button data-acc="estado">🔄 Cambiar estado</button>' +
-        '<button class="acc-a" data-acc="ficha">🔗 Compartir ficha</button>' +
+        '<button class="acc-a" data-acc="ficha">🔗 Ficha sin contacto</button>' +
         '<button class="acc-a" data-acc="imagen">🖼️ Imagen estados</button>' +
       '</div></div>';
   }).join('');
@@ -1297,14 +1297,20 @@ function generarImagenEstados(fila, boton) {
   if (!link) { toast('Falta el link de tu catálogo en la configuración del panel.', 6000); return; }
   var original = boton.textContent;
   boton.disabled = true; boton.textContent = 'Creando…';
-  var fotoUrl = (f._img && CFG.fichaUrl && CFG.espejoId && f.id)
-    ? CFG.fichaUrl.replace(/\/$/, '') + '/foto?sheet=' + encodeURIComponent(CFG.espejoId) + '&codigo=' + encodeURIComponent(f.id) + '&n=0&w=1600'
-    : '';
+  // Candidatas en orden: foto 1 por el proxy de la ficha (con CORS) y directa; si falla, las fotos 2 y 3.
+  var fotoUrls = [];
+  (f._fotos || []).slice(0, 3).forEach(function(u, i){
+    if (CFG.fichaUrl && CFG.espejoId && f.id) {
+      fotoUrls.push(CFG.fichaUrl.replace(/\/$/, '') + '/foto?sheet=' + encodeURIComponent(CFG.espejoId) + '&codigo=' + encodeURIComponent(f.id) + '&n=' + i + '&w=1600');
+    }
+    var m = /^https:\/\/lh3\.googleusercontent\.com\/d\/([\w-]+)/.exec(u);
+    fotoUrls.push(m ? 'https://lh3.googleusercontent.com/d/' + m[1] + '=w1600' : u);
+  });
   var cols = FichaVista.colores('#0f5b4f');
   var dominio = 'miraleads.pro';
   try { dominio = new URL(CFG.catalogoUrl).host; } catch (e) {}
   FichaImagen.generar(FichaVista.construirVista(f), {
-    fotoUrl: fotoUrl, colores: cols, dominio: dominio, iconoSvg: FichaVista.iconoSvg
+    fotoUrls: fotoUrls, colores: cols, dominio: dominio, iconoSvg: FichaVista.iconoSvg
   }).then(function(blob){
     _mostrarImagen(blob, f, link);
   }).catch(function(e){
