@@ -430,9 +430,9 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 
         <!-- Extractor de URL (plan Crecimiento en adelante) -->
         <details class="importar" id="importar">
-          <summary id="imp-resumen">Llenar desde un link de CRM o texto de WhatsApp</summary>
+          <summary id="imp-resumen">Llenar desde un link de CRM, ficha de Mira Leads o texto de WhatsApp</summary>
           <div class="fila-url" id="imp-fila">
-            <input id="imp-url" type="url" placeholder="https://ficha.crmred.co/…">
+            <input id="imp-url" type="url" placeholder="https://ficha.crmred.co/… o https://ficha.miraleads.pro/?sheet=…">
             <button class="btn btn-primario" id="imp-btn" onclick="llenarDesdeUrl()">Leer ficha</button>
           </div>
           <textarea id="imp-texto" placeholder="Si la página no se deja leer, pega aquí el texto del anuncio o mensaje de WhatsApp con los datos del inmueble."></textarea>
@@ -871,7 +871,7 @@ function aplicarPlan() {
 
   // Importador de fichas (Wasi / Red / Domus)
   if (!F.importador) {
-    document.getElementById('imp-resumen').textContent = '🔒 Llenar desde un link de CRM o texto de WhatsApp';
+    document.getElementById('imp-resumen').textContent = '🔒 Llenar desde un link de CRM, ficha de Mira Leads o texto de WhatsApp';
     document.getElementById('imp-fila').hidden = true;
     document.getElementById('imp-texto').hidden = true;
     document.getElementById('imp-ayuda').hidden = true;
@@ -1962,6 +1962,34 @@ document.addEventListener('paste', function(e) {
 /* ============================================================
    EXTRACTOR DE URL (plan Crecimiento en adelante)
    ============================================================ */
+/** Si el link es una ficha de Mira Leads (ficha.miraleads.pro/?sheet=…&id=…) devuelve {origen, sheet, codigo}. */
+function fichaMiraDeUrl(url) {
+  try {
+    var u = new URL(String(url || '').trim());
+    var base = CFG.fichaUrl ? new URL(CFG.fichaUrl).host : 'ficha.miraleads.pro';
+    if (u.host !== base && u.host !== 'ficha.miraleads.pro') return null;
+    var sheet = (u.searchParams.get('sheet') || '').trim();
+    var codigo = (u.searchParams.get('codigo') || u.searchParams.get('id') || '').trim();
+    if (!sheet || !codigo) return null;
+    return { origen: u.origin, sheet: sheet, codigo: codigo };
+  } catch (e) { return null; }
+}
+/** Lee los datos públicos de una ficha de Mira Leads (sin contacto) y los devuelve en el formato del importador. */
+function leerFichaMira(fm, urlOriginal) {
+  return fetch(fm.origen + '/datos?sheet=' + encodeURIComponent(fm.sheet) + '&codigo=' + encodeURIComponent(fm.codigo))
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if (!r || !r.ok) return { ok: false, error: (r && r.error) || 'No se pudo leer la ficha.' };
+      var d = Object.assign({}, r.datos);
+      delete d.id;                         // el inmueble nuevo recibe su propio ID
+      d.fotos = (d.fotos || []).map(fotoUrl).filter(Boolean);
+      d.link = String(urlOriginal).trim(); // queda el link de la ficha de origen (de quién es)
+      d.proveedor = 'la ficha de Mira Leads';
+      return { ok: true, datos: d };
+    })
+    .catch(function(){ return { ok: false, error: 'No se pudo conectar con la ficha. Revisa tu conexión.' }; });
+}
+
 function llenarDesdeUrl() {
   if (!F.importador) { mejorarPlan('importar fichas desde CRMred, Wasi o Domus'); return; }
   var url   = document.getElementById('imp-url').value.trim();
@@ -1969,7 +1997,9 @@ function llenarDesdeUrl() {
   var btn   = document.getElementById('imp-btn');
   var msg   = document.getElementById('hoja-mensaje');
   btn.disabled = true; btn.textContent = 'Leyendo…';
-  api({ accion: 'extraerUrl', url: url, textoPegado: texto }).then(function(r){
+  var fm = fichaMiraDeUrl(url);
+  var origen = fm ? leerFichaMira(fm, url) : api({ accion: 'extraerUrl', url: url, textoPegado: texto });
+  origen.then(function(r){
     if (!r.ok) throw new Error(r.error||'Error al leer');
     var d = r.datos || {};
     var n = 0;
