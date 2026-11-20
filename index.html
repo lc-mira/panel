@@ -188,6 +188,13 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .lead.t-rojo { box-shadow: inset 4px 0 0 #ef4444; } .lead.t-vencido { box-shadow: inset 4px 0 0 #5c1d1d; }
 .e-Nuevo { background: #e0e7ff; } .e-Contactado { background: #fef3c7; } .e-Calificado { background: #bbf7d0; }
 .e-Visita { background: #86efac; } .e-Negocio { background: #22c55e; color:#fff; } .e-No { background: #fecaca; }
+.e-Negociacion { background: #d9f99d; } .e-Precio { background: #bae6fd; } .e-Captado { background: #86efac; }
+.e-Publicado { background: #22c55e; color:#fff; } .e-Estudio { background: #ddd6fe; } .e-Contrato { background: #22c55e; color:#fff; }
+.tabs-tipo { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; }
+.tabs-tipo button { flex: 1 1 0; min-width: 104px; border: 1px solid var(--linea); background: var(--papel); border-radius: 10px; padding: 9px 8px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--suave); cursor: pointer; }
+.tabs-tipo button[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: #fff; }
+.tabs-tipo .n { font-weight: 500; opacity: .85; margin-left: 4px; }
+.etq-tipo { display: inline-block; font-size: 11px; font-weight: 600; background: var(--acento2); color: var(--acento); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
 .estado-meta { font-size: 12px; color: var(--tenue); margin-top: 6px; }
 .estado-meta.error { color: var(--alerta); }
 
@@ -373,7 +380,9 @@ main, .lista > * { min-width: 0; max-width: 100%; }
     <div class="herramientas">
       <input class="buscar" id="buscar-leads" type="search" placeholder="Buscar nombre, WhatsApp, inmueble, zona…" oninput="pintarLeads()">
       <button class="btn" onclick="cargarLeads()">Actualizar</button>
+      <button class="btn btn-primario" onclick="abrirLead()">+ Lead</button>
     </div>
+    <div class="tabs-tipo" id="tabs-lead" hidden></div>
     <div class="temp-resumen" id="temp-resumen"></div>
     <div class="chips" id="chips-leads"></div>
     <div class="lista" id="lista-leads"><p class="cargando">Cargando leads…</p></div>
@@ -569,6 +578,58 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 </div>
 
 <!-- ============================================================
+     MODAL — NUEVO LEAD (a mano: TikTok, WhatsApp, orgánico, referido…)
+     ============================================================ -->
+<div class="capa capa-aviso" id="capa-lead" hidden>
+  <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="nl-titulo">
+    <div class="hoja-cab"><h2 id="nl-titulo">Nuevo lead</h2><button class="cerrar" aria-label="Cerrar" onclick="cerrarLead()">×</button></div>
+    <div class="hoja-cuerpo">
+      <div class="campo" style="margin-bottom:12px">
+        <label>¿Qué busca?</label>
+        <div class="est-chips" id="nl-tipos" style="margin-bottom:0"></div>
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-nombre">Nombre *</label>
+        <input id="nl-nombre" type="text" autocomplete="off" maxlength="80" placeholder="Nombre y apellido">
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-wa">WhatsApp *</label>
+        <input id="nl-wa" type="tel" inputmode="tel" autocomplete="off" maxlength="20" placeholder="300 123 4567">
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-origen">¿De dónde llegó?</label>
+        <select id="nl-origen"></select>
+      </div>
+      <div class="campo" style="margin-bottom:12px" id="nl-op-caja" hidden>
+        <label>El propietario quiere</label>
+        <div class="est-chips" id="nl-op" style="margin-bottom:0"></div>
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-inmueble" id="nl-l-inmueble">Inmueble</label>
+        <input id="nl-inmueble" type="text" autocomplete="off" maxlength="120">
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-presupuesto" id="nl-l-presupuesto">Presupuesto</label>
+        <input id="nl-presupuesto" type="text" autocomplete="off" maxlength="40">
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-zona">Zona o barrio</label>
+        <input id="nl-zona" type="text" autocomplete="off" maxlength="80" placeholder="Ej. Valle del Lili">
+      </div>
+      <div class="campo">
+        <label for="nl-nota">Nota</label>
+        <textarea id="nl-nota" rows="2" maxlength="500" placeholder="Ej. Vio el video de TikTok del apto en Pance"></textarea>
+      </div>
+    </div>
+    <div class="hoja-pie">
+      <span class="msg" id="nl-msg"></span>
+      <button class="btn" onclick="cerrarLead()">Cancelar</button>
+      <button class="btn btn-primario" id="nl-guardar" onclick="guardarNuevoLead()">Guardar lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      MODAL — CAMBIAR ESTADO (acción rápida de la tarjeta)
      ============================================================ -->
 <div class="capa capa-aviso" id="capa-estado" hidden>
@@ -646,6 +707,7 @@ var S = {
   edReq:      null,
   filtroInm:  'Disponible',   // por defecto solo Disponibles; '*' = Todos
   filtroLead: 'Todos',
+  tipoLead:   'Comprador',    // pestaña de embudo abierta
   filtroTemp: '',
   filtroReq:  'Activas',
   cargando:   { leads: false, req: false }
@@ -1009,6 +1071,7 @@ window.addEventListener('popstate', function () {
     cancelarComision(); histAbrir(); return;
   }
   if (!document.getElementById('capa-img').hidden) { cerrarImagen(true); return; }
+  if (!document.getElementById('capa-lead').hidden) { cerrarLead(true); return; }
   if (!document.getElementById('capa-estado').hidden) { cerrarCambioEstado(true); return; }
   var inm = !document.getElementById('capa').hidden;
   var req = !document.getElementById('capa-req').hidden;
@@ -2052,8 +2115,8 @@ var TEMP_L = {verde:'Caliente',amarillo:'Se enfría',rojo:'Urgente',vencido:'Ven
 var HORAS  = {verde:48, amarillo:96, vencido:168};
 
 function temperatura(f) {
-  if (!f.fecha || ['Negocio cerrado','No calificado'].indexOf(f.pipeline)!==-1) return null;
-  if (['Calificado','Visita agendada'].indexOf(f.pipeline)!==-1) return null;
+  // Solo "se enfría" un lead que aún no se ha atendido (Nuevo / Contactado), en cualquier embudo.
+  if (!f.fecha || ['Nuevo','Contactado'].indexOf(f.pipeline)===-1) return null;
   var ms = new Date(f.fecha).getTime();
   if (!ms) return null;
   var h = (Date.now()-ms)/3600000;
@@ -2062,7 +2125,48 @@ function temperatura(f) {
   return { nivel: niv, texto: TEMP_L[niv]+' · '+edad };
 }
 
+/* ---- Embudos: Comprador / Propietario / Inquilino ---- */
+var LEAD_TIPOS = ['Comprador','Propietario','Inquilino'];
+var LEAD_TIPO_PLURAL = { Comprador:'Compradores', Propietario:'Propietarios', Inquilino:'Inquilinos' };
+var LEAD_ETAPAS = {
+  Comprador:   ['Nuevo','Contactado','Calificado','Visita agendada','Negociación','Negocio cerrado','No calificado'],
+  Propietario: ['Nuevo','Contactado','Visita de captación','Precio acordado','Captado','Publicado','Negocio cerrado','No calificado'],
+  Inquilino:   ['Nuevo','Contactado','Calificado','Visita agendada','Estudio','Contrato firmado','No calificado']
+};
+var LEAD_ORIGENES = ['Catálogo','Landing','TikTok','WhatsApp','Orgánico','Referido','Llamada o letrero','Otro'];
+/* Cómo se llaman los campos de la hoja según quién es el lead */
+var LEAD_ETQ = {
+  Comprador:   { inmueble:'Inmueble',        presupuesto:'Presupuesto',     ph1:'Ej. Apartamento en venta, Ciudad Jardín', ph2:'Ej. 300.000.000 o 250 a 300 millones' },
+  Propietario: { inmueble:'Su inmueble',     presupuesto:'Precio esperado', ph1:'Ej. Apartamento 85 m², Kachipay',         ph2:'Ej. 310.000.000 o canon 2.200.000' },
+  Inquilino:   { inmueble:'Qué busca',       presupuesto:'Canon máximo',    ph1:'Ej. Apartamento 2 hab',                   ph2:'Ej. 1.800.000' }
+};
+function tipoDe(f) { return LEAD_TIPOS.indexOf(f && f.tipo)!==-1 ? f.tipo : 'Comprador'; }
+function etapasDe(tipo) { return LEAD_ETAPAS[tipo] || LEAD_ETAPAS.Comprador; }
+function _leadsDelTipo() {
+  var filas = (S.leads && S.leads.filas) || [];
+  return F.etapasLeads ? filas.filter(function(f){ return tipoDe(f)===S.tipoLead; }) : filas;
+}
+
+function _pintarTabsLead() {
+  var cont = document.getElementById('tabs-lead');
+  if (!F.etapasLeads) { cont.hidden = true; return; }
+  var cuenta = {};
+  LEAD_TIPOS.forEach(function(t){ cuenta[t]=0; });
+  ((S.leads&&S.leads.filas)||[]).forEach(function(f){ cuenta[tipoDe(f)]++; });
+  cont.hidden = false;
+  cont.innerHTML = LEAD_TIPOS.map(function(t){
+    return '<button type="button" aria-pressed="'+(S.tipoLead===t)+'" data-v="'+t+'">'+LEAD_TIPO_PLURAL[t]+'<span class="n">'+cuenta[t]+'</span></button>';
+  }).join('');
+  cont.querySelectorAll('button').forEach(function(b){
+    b.onclick = function(){
+      S.tipoLead = b.dataset.v; S.filtroLead = 'Todos'; S.filtroTemp = '';
+      _pintarTabsLead(); pintarChipsLeads(); pintarLeads();
+    };
+  });
+}
+
 function pintarChipsLeads() {
+  _pintarTabsLead();
   // Plan Catálogo: lista simple, sin resumen de temperatura ni filtros por etapa
   if (!F.etapasLeads) {
     document.getElementById('temp-resumen').innerHTML = '';
@@ -2070,11 +2174,12 @@ function pintarChipsLeads() {
     return;
   }
   _pintarResumenTemp();
-  var r = S.leads, cuenta = {Todos: r.filas.length};
-  LC_CONFIG_ETAPAS.forEach(function(e){ cuenta[e] = 0; });
-  r.filas.forEach(function(f){ if(f.pipeline in cuenta) cuenta[f.pipeline]++; });
+  var etapas = etapasDe(S.tipoLead), filas = _leadsDelTipo();
+  var cuenta = {Todos: filas.length};
+  etapas.forEach(function(e){ cuenta[e] = 0; });
+  filas.forEach(function(f){ if(f.pipeline in cuenta) cuenta[f.pipeline]++; });
   var cont = document.getElementById('chips-leads');
-  cont.innerHTML = ['Todos'].concat(LC_CONFIG_ETAPAS).map(function(et){
+  cont.innerHTML = ['Todos'].concat(etapas).map(function(et){
     return '<button class="chip" aria-pressed="'+(S.filtroLead===et)+'" data-v="'+esc(et)+'">'+esc(et)+' · '+(cuenta[et]||0)+'</button>';
   }).join('');
   cont.querySelectorAll('.chip').forEach(function(b){
@@ -2082,11 +2187,9 @@ function pintarChipsLeads() {
   });
 }
 
-var LC_CONFIG_ETAPAS = ['Nuevo','Contactado','Calificado','Visita agendada','Negocio cerrado','No calificado'];
-
 function _pintarResumenTemp() {
   var cuenta = {verde:0,amarillo:0,rojo:0,vencido:0};
-  (S.leads&&S.leads.filas||[]).forEach(function(f){ var t=temperatura(f); if(t) cuenta[t.nivel]++; });
+  _leadsDelTipo().forEach(function(f){ var t=temperatura(f); if(t) cuenta[t.nivel]++; });
   var cont = document.getElementById('temp-resumen');
   cont.innerHTML = Object.keys(cuenta).map(function(k){
     return '<button class="temp-caja '+k+'" data-v="'+k+'" aria-pressed="'+(S.filtroTemp===k)+'">'+
@@ -2102,10 +2205,11 @@ function pintarLeads() {
   var q = norm(document.getElementById('buscar-leads').value);
   var filas = r.filas.filter(function(f){
     if (F.etapasLeads) {
+      if (tipoDe(f)!==S.tipoLead) return false;
       if (S.filtroLead!=='Todos' && f.pipeline!==S.filtroLead) return false;
       if (S.filtroTemp) { var t=temperatura(f); if(!t||t.nivel!==S.filtroTemp) return false; }
     }
-    var campos = [f.nombre,f.whatsapp,f.inmueble,f.zona,f.origen];
+    var campos = [f.nombre,f.whatsapp,f.inmueble,f.zona,f.origen,f.tipo];
     if (F.etapasLeads) campos.push(f.notas);
     return !q || norm(campos.join(' ')).indexOf(q)!==-1;
   });
@@ -2115,7 +2219,19 @@ function pintarLeads() {
   if (F.etapasLeads) cont.querySelectorAll('.lead').forEach(wireLead);
 }
 
-function claseEtapa(e) { return 'e-'+(String(e||'').split(' ')[0]); }
+function claseEtapa(e) { return 'e-'+String(e||'').split(' ')[0].normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+/** Líneas de datos del lead según su embudo (Propietario: precio esperado y qué quiere; Inquilino: canon). */
+function _leadDatosHtml(f) {
+  var t = tipoDe(f), q = LEAD_ETQ[t];
+  return '<div class="lead-datos">'+
+    (f.inmueble?'<div><b>'+q.inmueble+':</b> '+esc(f.inmueble)+'</div>':'')+
+    (f.presupuesto?'<div><b>'+q.presupuesto+':</b> '+esc(f.presupuesto)+'</div>':'')+
+    (f.zona?'<div><b>Zona:</b> '+esc(f.zona)+'</div>':'')+
+    (t==='Propietario'&&f.operacion?'<div><b>Quiere:</b> '+esc(f.operacion==='Arrendar'?'arrendar':'vender')+'</div>':'')+
+    (t==='Comprador'&&f.formaPago?'<div><b>Pago:</b> '+esc(f.formaPago)+'</div>':'')+
+  '</div>';
+}
 
 /** Tarjeta de lead del plan Catálogo: datos de contacto y WhatsApp, sin etapas ni notas. */
 function leadSimpleHtml(f) {
@@ -2123,17 +2239,12 @@ function leadSimpleHtml(f) {
   return '<article class="lead">'+
     '<div class="lead-cab">'+
       '<div>'+
-        '<div class="nom">'+esc(f.nombre||'Sin nombre')+'</div>'+
+        '<div class="nom">'+esc(f.nombre||'Sin nombre')+(tipoDe(f)!=='Comprador'?'<span class="etq-tipo">'+esc(tipoDe(f))+'</span>':'')+'</div>'+
         '<div class="meta">'+esc([f.fecha,f.origen,f.whatsapp].filter(Boolean).join(' · '))+'</div>'+
       '</div>'+
       (wa?'<a class="wa" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
     '</div>'+
-    '<div class="lead-datos">'+
-      (f.inmueble?'<div><b>Inmueble:</b> '+esc(f.inmueble)+'</div>':'')+
-      (f.presupuesto?'<div><b>Presupuesto:</b> '+esc(f.presupuesto)+'</div>':'')+
-      (f.zona?'<div><b>Zona:</b> '+esc(f.zona)+'</div>':'')+
-      (f.formaPago?'<div><b>Pago:</b> '+esc(f.formaPago)+'</div>':'')+
-    '</div>'+
+    _leadDatosHtml(f)+
     '</article>';
 }
 
@@ -2142,7 +2253,8 @@ function leadHtml(f) {
   var temp = temperatura(f);
   var wa = waUrl(f.whatsapp);
   var m = String(f.enviado||'');
-  var ops = LC_CONFIG_ETAPAS.map(function(e){ return '<option'+(e===f.pipeline?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+  var t = tipoDe(f);
+  var ops = etapasDe(t).map(function(e){ return '<option'+(e===f.pipeline?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
   return '<article class="lead'+(temp?' t-'+temp.nivel:'')+'" data-fila="'+esc(String(f.fila||''))+'">'+
     '<div class="lead-cab">'+
       '<div>'+
@@ -2152,16 +2264,11 @@ function leadHtml(f) {
       '</div>'+
       (wa?'<a class="wa" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
     '</div>'+
-    '<div class="lead-datos">'+
-      (f.inmueble?'<div><b>Inmueble:</b> '+esc(f.inmueble)+'</div>':'')+
-      (f.presupuesto?'<div><b>Presupuesto:</b> '+esc(f.presupuesto)+'</div>':'')+
-      (f.zona?'<div><b>Zona:</b> '+esc(f.zona)+'</div>':'')+
-      (f.formaPago?'<div><b>Pago:</b> '+esc(f.formaPago)+'</div>':'')+
-    '</div>'+
+    _leadDatosHtml(f)+
     '<div class="lead-fila">'+
       '<select class="etapa '+claseEtapa(f.pipeline)+'" aria-label="Etapa">'+ops+'</select>'+
       '<button class="btn btn-primario guardar">Guardar</button>'+
-      '<button class="btn crear-req" title="Crear requerimiento con datos de este lead">+ Req</button>'+
+      (t!=='Propietario'?'<button class="btn crear-req" title="Crear requerimiento con datos de este lead">+ Req</button>':'')+
     '</div>'+
     (f.notas?'<div class="notas">'+esc(f.notas)+'</div>':'')+
     '<textarea class="nota" rows="1" placeholder="Agregar nota…"></textarea>'+
@@ -2173,7 +2280,8 @@ function wireLead(art) {
   var sel = art.querySelector('.etapa');
   sel.onchange = function(){ sel.className='etapa '+claseEtapa(sel.value); };
   art.querySelector('.guardar').onclick = function(){ guardarLead(art); };
-  art.querySelector('.crear-req').onclick = function(){ reqDesdeLead(art.dataset.fila); };
+  var br = art.querySelector('.crear-req');
+  if (br) br.onclick = function(){ reqDesdeLead(art.dataset.fila); };
 }
 
 function guardarLead(art) {
@@ -2194,6 +2302,82 @@ function guardarLead(art) {
     f.pipeline=antes.pipeline; f.notas=antes.notas;
     toast('No se guardó ('+e.message+'). Se devolvió el cambio.', 5000);
     pintarLeads();
+  });
+}
+
+
+/* ---- Nuevo lead a mano ---- */
+var _nl = null;   // { tipo, operacion, guardando }
+function abrirLead() {
+  _nl = { tipo: F.etapasLeads ? S.tipoLead : 'Comprador', operacion: 'Vender', guardando: false };
+  ['nombre','wa','inmueble','presupuesto','zona','nota'].forEach(function(k){ document.getElementById('nl-'+k).value = ''; });
+  document.getElementById('nl-origen').innerHTML = LEAD_ORIGENES.map(function(o){ return '<option>'+esc(o)+'</option>'; }).join('');
+  document.getElementById('nl-msg').textContent = '';
+  document.getElementById('nl-guardar').disabled = false;
+  document.getElementById('nl-guardar').textContent = 'Guardar lead';
+  _pintarTiposLead();
+  document.getElementById('capa-lead').hidden = false;
+  histAbrir();
+  setTimeout(function(){ document.getElementById('nl-nombre').focus(); }, 60);
+}
+function _pintarTiposLead() {
+  var cont = document.getElementById('nl-tipos');
+  var textos = { Comprador:'Comprar', Propietario:'Es propietario', Inquilino:'Arrendar' };
+  cont.innerHTML = LEAD_TIPOS.map(function(t){
+    return '<button type="button" class="chip" aria-pressed="'+(_nl.tipo===t)+'" data-v="'+t+'">'+textos[t]+'</button>';
+  }).join('');
+  cont.querySelectorAll('.chip').forEach(function(b){ b.onclick = function(){ _nl.tipo = b.dataset.v; _pintarTiposLead(); }; });
+  var q = LEAD_ETQ[_nl.tipo];
+  document.getElementById('nl-l-inmueble').textContent = q.inmueble;
+  document.getElementById('nl-l-presupuesto').textContent = q.presupuesto;
+  document.getElementById('nl-inmueble').placeholder = q.ph1;
+  document.getElementById('nl-presupuesto').placeholder = q.ph2;
+  var esProp = _nl.tipo==='Propietario';
+  document.getElementById('nl-op-caja').hidden = !esProp;
+  if (esProp) {
+    var op = document.getElementById('nl-op');
+    op.innerHTML = ['Vender','Arrendar'].map(function(o){
+      return '<button type="button" class="chip" aria-pressed="'+(_nl.operacion===o)+'" data-v="'+o+'">'+o+'</button>';
+    }).join('');
+    op.querySelectorAll('.chip').forEach(function(b){ b.onclick = function(){ _nl.operacion = b.dataset.v; _pintarTiposLead(); }; });
+  }
+}
+function cerrarLead(desdeHistorial) {
+  document.getElementById('capa-lead').hidden = true;
+  _nl = null;
+  if (!desdeHistorial) histCerrar();
+}
+function guardarNuevoLead(forzar) {
+  if (!_nl || _nl.guardando) return;
+  var v = function(k){ return document.getElementById('nl-'+k).value.trim(); };
+  var msg = document.getElementById('nl-msg');
+  var nombre = v('nombre'), wa = v('wa').replace(/\D/g,'');
+  if (!nombre) { msg.textContent = 'Escribe el nombre.'; document.getElementById('nl-nombre').focus(); return; }
+  if (wa.length < 7) { msg.textContent = 'El WhatsApp debe tener al menos 7 dígitos.'; document.getElementById('nl-wa').focus(); return; }
+  msg.textContent = '';
+  var tipo = _nl.tipo;
+  var datos = { accion:'crearLead', tipo:tipo, operacion:_nl.operacion, nombre:nombre, whatsapp:wa,
+    origen:document.getElementById('nl-origen').value, inmueble:v('inmueble'), presupuesto:v('presupuesto'),
+    zona:v('zona'), nota:v('nota'), forzar: forzar===true };
+  var btn = document.getElementById('nl-guardar');
+  _nl.guardando = true; btn.disabled = true; btn.textContent = 'Guardando…';
+  api(datos).then(function(r){
+    if (r.duplicado) {
+      var e = r.existente || {};
+      var otra = confirm('Ya tienes a "'+(e.nombre||'este contacto')+'" ('+(e.tipo||tipo)+(e.pipeline?', '+e.pipeline:'')+') con ese WhatsApp.\n\n¿Crear otro lead de todos modos?');
+      if (otra) { _nl.guardando = false; _nl.reintento = true; btn.disabled = false; guardarNuevoLead(true); return; }
+      throw new Error('Ya existía; no se creó.');
+    }
+    if (!r.ok) throw new Error(r.error||'Error');
+    cerrarLead();
+    S.tipoLead = tipo; S.filtroLead = 'Todos'; S.filtroTemp = '';
+    toast('Lead guardado.');
+    return cargarLeads();
+  }).catch(function(e){
+    if (_nl) { msg.textContent = e.message; _nl.guardando = false; }
+  }).then(function(){
+    if (_nl && _nl.reintento) { _nl.reintento = false; return; }   // el reintento (crear igual) sigue en curso
+    btn.disabled = false; btn.textContent = 'Guardar lead';
   });
 }
 
