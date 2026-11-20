@@ -169,6 +169,10 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .lead-cab .wa { margin-left: auto; flex: none; text-decoration: none; background: #e8f7ee; color: #12753a; border-radius: 999px; padding: 6px 12px; font-weight: 600; font-size: 13px; }
 .lead-datos { margin: 8px 0; color: var(--suave); font-size: 13px; display: grid; gap: 2px; }
 .lead-datos b { color: var(--tinta); font-weight: 600; }
+.colega { font-size: 13px; }
+.colega .tenue { color: var(--tenue); }
+.colega .etiqueta-estado { display: inline-block; background: var(--alerta-2); color: var(--alerta); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; margin-left: 4px; }
+.aviso-inm { color: var(--alerta); }
 .lead-fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .etapa { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--linea); font-weight: 600; }
 .notas { white-space: pre-wrap; background: var(--fondo); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--suave); margin: 8px 0 0; max-height: 140px; overflow: auto; }
@@ -1057,6 +1061,7 @@ function cargarInmuebles() {
     document.getElementById('num-inm').textContent = S.inm.filas.length;
     pintarChipsInm();
     pintarInmuebles();
+    if (S.leads) pintarLeads(); // para que los leads muestren el encargado del inmueble
   }).catch(function (e) {
     document.getElementById('lista-inm').innerHTML = '<div class="mensaje error">'+esc(e.message)+'</div>';
   });
@@ -2048,7 +2053,7 @@ function cargarLeads() {
 }
 
 var TEMP_N = {verde:'Calientes',amarillo:'Se enfrían',rojo:'Urgentes',vencido:'Vencidos'};
-var TEMP_L = {verde:'Caliente',amarillo:'Se enfría',rojo:'Urgente',vencido:'Vencido'};
+var TEMP_L = {verde:'Caliente',amarillo:'Se enfría',rojo:'Urgente',vencido:'Vencido para Meta'};
 var HORAS  = {verde:48, amarillo:96, vencido:168};
 
 function temperatura(f) {
@@ -2058,8 +2063,51 @@ function temperatura(f) {
   if (!ms) return null;
   var h = (Date.now()-ms)/3600000;
   var niv = h<HORAS.verde?'verde':h<HORAS.amarillo?'amarillo':h<HORAS.vencido?'rojo':'vencido';
-  var edad = h<1?'hace menos de 1 h':h<24?'hace '+Math.floor(h)+' h':'hace '+Math.floor(h/24)+' días';
-  return { nivel: niv, texto: TEMP_L[niv]+' · '+edad };
+  var d = Math.floor(h/24);
+  var edad = h<1?'hace menos de 1 h':h<24?'hace '+Math.floor(h)+' h':'hace '+d+(d===1?' día':' días');
+  var extra = '';
+  if (niv==='rojo') { var quedan = Math.ceil((HORAS.vencido-h)/24); extra = ' · queda'+(quedan===1?' 1 día':'n '+quedan+' días')+' para Meta'; }
+  return { nivel: niv, texto: TEMP_L[niv]+' · '+edad+extra };
+}
+
+/** Link seguro (solo http/https) al inmueble que consultó el lead. */
+function _urlSegura(u) { u = String(u||'').trim(); return /^https?:\/\//i.test(u) ? u : ''; }
+
+/** Busca en el portafolio el inmueble que le gustó al lead. El link del catálogo termina en el ID
+ *  (…?ver=apartamento-refugio-p0085); si no hay link, se intenta con un ID escrito en el texto. */
+function inmuebleDeLead(f) {
+  if (!S.inm) return null;
+  var filas = S.inm.filas, id = '', m;
+  m = String(f.link||'').match(/[?&](?:ver|id)=([^&#]+)/i);
+  if (m) { try { m = decodeURIComponent(m[1]); } catch (e) { m = m[1]; } id = String(m).toLowerCase(); }
+  if (id) {
+    var h = filas.filter(function(x){ var xi = String(x.id||'').toLowerCase(); return xi && (id === xi || id.slice(-(xi.length+1)) === '-'+xi); })[0];
+    if (h) return h;
+  }
+  m = String(f.inmueble||'').match(/\b[A-Za-z]\d{3,}\b/);
+  if (m) return filas.filter(function(x){ return String(x.id||'').toLowerCase() === m[0].toLowerCase(); })[0] || null;
+  return null;
+}
+
+/** Línea "Colega: nombre · celular (ID · proyecto) [estado]" del inmueble del lead. */
+function colegaHtml(f) {
+  if (!f.link && !f.inmueble) return '';
+  if (!S.inm) return '';
+  var i = inmuebleDeLead(f);
+  if (!i) return /[?&](?:ver|id)=/i.test(String(f.link||'')) ? '<div class="colega aviso-inm">Ese inmueble ya no está en el portafolio.</div>' : '';
+  var wa = waUrl(i.celular);
+  var extra = [i.id, i.proyecto].filter(Boolean).join(' · ');
+  var noDisp = i.estado && !/disponible/i.test(i.estado);
+  return '<div class="colega"><b>'+(/colega/i.test(i.captacion||'') ? 'Colega' : 'Encargado')+':</b> '+esc(i.encargado||'Sin encargado registrado')+
+    (i.celular ? ' · '+(wa?'<a target="_blank" rel="noopener" href="'+esc(wa)+'">'+esc(i.celular)+'</a>':esc(i.celular)) : '')+
+    (extra ? ' <span class="tenue">('+esc(extra)+')</span>' : '')+
+    (noDisp ? ' <span class="etiqueta-estado">'+esc(i.estado)+'</span>' : '')+'</div>';
+}
+
+function _inmLeadHtml(f) {
+  if (!f.inmueble) return '';
+  var l = _urlSegura(f.link);
+  return '<div><b>Inmueble:</b> '+(l?'<a target="_blank" rel="noopener" href="'+esc(l)+'">'+esc(f.inmueble)+'</a>':esc(f.inmueble))+'</div>';
 }
 
 function pintarChipsLeads() {
@@ -2129,7 +2177,7 @@ function leadSimpleHtml(f) {
       (wa?'<a class="wa" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
     '</div>'+
     '<div class="lead-datos">'+
-      (f.inmueble?'<div><b>Inmueble:</b> '+esc(f.inmueble)+'</div>':'')+
+      _inmLeadHtml(f)+colegaHtml(f)+
       (f.presupuesto?'<div><b>Presupuesto:</b> '+esc(f.presupuesto)+'</div>':'')+
       (f.zona?'<div><b>Zona:</b> '+esc(f.zona)+'</div>':'')+
       (f.formaPago?'<div><b>Pago:</b> '+esc(f.formaPago)+'</div>':'')+
@@ -2153,7 +2201,7 @@ function leadHtml(f) {
       (wa?'<a class="wa" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
     '</div>'+
     '<div class="lead-datos">'+
-      (f.inmueble?'<div><b>Inmueble:</b> '+esc(f.inmueble)+'</div>':'')+
+      _inmLeadHtml(f)+colegaHtml(f)+
       (f.presupuesto?'<div><b>Presupuesto:</b> '+esc(f.presupuesto)+'</div>':'')+
       (f.zona?'<div><b>Zona:</b> '+esc(f.zona)+'</div>':'')+
       (f.formaPago?'<div><b>Pago:</b> '+esc(f.formaPago)+'</div>':'')+
