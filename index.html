@@ -278,6 +278,20 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .archivos-tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--linea); }
 .arch-tab { border: 0; background: none; padding: 8px 14px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--suave); border-bottom: 2px solid transparent; }
 .arch-tab[aria-selected="true"] { color: var(--acento); border-bottom-color: var(--acento); }
+.arch-tab[hidden] { display: none; }
+.prop-card { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 12px 14px; }
+.prop-card .prop-nom { font-weight: 700; font-size: 15px; }
+.prop-card .prop-dato { font-size: 13px; color: var(--suave); margin-top: 4px; word-break: break-word; }
+.prop-card .prop-notas { font-size: 13px; color: var(--tinta); margin-top: 8px; white-space: pre-wrap; background: var(--fondo); border-radius: 8px; padding: 8px 10px; }
+.prop-card .prop-otros { font-size: 12.5px; color: var(--suave); margin-top: 8px; }
+.prop-acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.prop-acc .btn { padding: 7px 12px; font-size: 13px; text-decoration: none; display: inline-block; }
+.prop-res { display: grid; gap: 6px; margin: 8px 0 12px; }
+.prop-res button { text-align: left; font: inherit; cursor: pointer; background: var(--papel); border: 1px solid var(--linea); border-radius: 8px; padding: 9px 12px; }
+.prop-res button:hover { border-color: var(--acento); }
+.prop-res .n { font-weight: 600; } .prop-res .t { color: var(--tenue); font-size: 12.5px; margin-left: 6px; }
+.prop-vacio { color: var(--tenue); font-size: 13px; padding: 8px 0 12px; }
+.prop-form { display: grid; gap: 12px; }
 .arch-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .fotos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
 .foto { position: relative; border-radius: 8px; overflow: hidden; background: var(--fondo); aspect-ratio: 4/3; }
@@ -483,6 +497,7 @@ main, .lista > * { min-width: 0; max-width: 100%; }
           <div class="archivos-tabs">
             <button class="arch-tab" id="tab-fotos" aria-selected="true"  onclick="verArchTab('fotos')">📷 Fotos</button>
             <button class="arch-tab" id="tab-docs"  aria-selected="false" onclick="verArchTab('docs')">📄 Documentos</button>
+            <button class="arch-tab" id="tab-prop"  aria-selected="false" onclick="verArchTab('prop')" hidden>👤 Propietario</button>
           </div>
 
           <!-- Panel fotos -->
@@ -517,6 +532,11 @@ main, .lista > * { min-width: 0; max-width: 100%; }
             </div>
             <div class="progreso-wrap" id="prog-docs" hidden><div class="progreso-barra" id="prog-docs-b"></div></div>
             <div class="docs-lista" id="docs-lista"></div>
+          </div>
+
+          <!-- Panel propietario (captación propia) -->
+          <div id="panel-prop" class="arch-panel" hidden>
+            <div id="prop-contenido"></div>
           </div>
         </div>
 
@@ -734,6 +754,7 @@ var S = {
   filtroInm:  'Disponible',   // por defecto solo Disponibles; '*' = Todos
   filtroLead: 'Todos',
   tipoLead:   '',             // embudo abierto ('' = pantalla de inicio con los 3 tipos)
+  prop:       { lista: null, cargando: null, error: '' },   // propietarios registrados (se cargan al abrir la pestaña)
   filtroTemp: '',
   filtroReq:  'Activas',
   cargando:   { leads: false, req: false }
@@ -871,6 +892,7 @@ function cargarSesion() {
     S.plan = r.plan || 'catalogo';
     S.planNombre = r.planNombre || 'Catálogo';
     F = r.funciones || {};
+    if (F.propietarios === undefined) F.propietarios = !!F.etapasLeads;   // propietarios: Crecimiento en adelante
     var c = r.config || {};
     CFG.fichaUrl    = c.fichaUrl    || '';
     CFG.ciudad      = c.ciudad      || '';
@@ -1183,7 +1205,8 @@ var REGLAS_COLUMNAS = [
   ['celular',       function(h){ return h.indexOf('celular') === 0; }],
   ['notasPrivadas', function(h){ return h.indexOf('nota') === 0; }],
   ['documentos',    function(h){ return h.indexOf('documento') === 0; }],
-  ['comision',      function(h){ return h.indexOf('comision') === 0; }]
+  ['comision',      function(h){ return h.indexOf('comision') === 0; }],
+  ['propietarioId', function(h){ return h.indexOf('propietario') === 0; }]
 ];
 
 function _procesarPortafolio(r) {
@@ -1464,6 +1487,8 @@ var OPCIONES = {
 };
 
 function abrirInmueble(fila) {
+  _pp = { modo: 'auto', editId: '', q: '', pre: null };
+  verArchTab('fotos');
   document.getElementById('hoja-mensaje').innerHTML = '';
   document.getElementById('pie-msg').textContent = '';
   document.getElementById('imp-url').value = '';
@@ -1728,6 +1753,7 @@ function marcarCambios() {
   var ed = S.edicion;
   if (!ed) return;
   _visibilidadCampos();
+  _tabPropVisible();
   var n = 0;
   var todos = CAMPOS_PUBLICOS.concat(CAMPOS_PRIVADOS).concat(CAMPOS_COMISION);
   todos.forEach(function(clave){
@@ -1739,6 +1765,7 @@ function marcarCambios() {
     if (div) div.classList.toggle('cambiado', cambiado);
     if (cambiado) n++;
   });
+  if (_propCambio() !== null) n++;
   _pintarFotos();
   document.getElementById('pie-msg').textContent = n ? n+' campo(s) con cambios' : (S.edicion.fila?'Sin cambios':'');
 }
@@ -1760,6 +1787,9 @@ function cambiosActuales() {
   var docsActuales = _listaDocs().join('\n');
   var docsOrig = String((S.edicion&&S.edicion.vals&&S.edicion.vals.documentos)||'').trim();
   if (docsActuales !== docsOrig) { cambios.documentos = docsActuales; n++; }
+  // Propietario vinculado (pestaña Propietario): '' = quitar el vínculo
+  var pc = _propCambio();
+  if (pc !== null) { cambios.propietarioId = pc; n++; }
   // Captación: no tiene campo propio en el formulario (se elige en la pantalla
   // "¿De quién es este inmueble?" al crear), así que se incluye solo al crear uno nuevo.
   if (!S.edicion.fila && S.edicion.vals && S.edicion.vals.captacion) {
@@ -1884,6 +1914,195 @@ function _pintarFotos() {
   });
 }
 
+
+/* ============================================================
+   PROPIETARIOS — pestaña dentro del inmueble (captación propia)
+   Un propietario por inmueble; los datos viven en la pestaña "Propietarios" de la hoja y el
+   inmueble guarda solo su ID (columna privada "Propietario ID"). Al vincular se copian
+   nombre y WhatsApp a Encargado / Celular para que lo ya existente siga funcionando.
+   ============================================================ */
+var _pp = { modo: 'auto', editId: '', q: '', pre: null };   // modo: auto | form
+
+function _tabPropVisible() {
+  var tab = document.getElementById('tab-prop'); if (!tab) return;
+  var cap = S.edicion && S.edicion.vals && S.edicion.vals.captacion;
+  var vis = !!F.propietarios && !!S.edicion && !/colega/i.test(String(cap||''));
+  tab.hidden = !vis;
+  if (!vis && !document.getElementById('panel-prop').hidden) verArchTab('fotos');
+}
+
+/** null = sin cambio; '' = quitar el vínculo; 'PR0001' = vincular ese propietario. */
+function _propCambio() {
+  var ed = S.edicion; if (!ed || ed.propId === undefined) return null;
+  var orig = String((ed.vals && ed.vals.propietarioId) || '').trim();
+  return ed.propId !== orig ? ed.propId : null;
+}
+function _propIdActual() {
+  var ed = S.edicion; if (!ed) return '';
+  return String(ed.propId !== undefined ? ed.propId : ((ed.vals && ed.vals.propietarioId) || '')).trim();
+}
+function _propPorId(id) {
+  return ((S.prop.lista || []).filter(function(o){ return o.id === id; })[0]) || null;
+}
+
+function _cargarPropietarios(forzar) {
+  var p = S.prop;
+  if (p.lista && !forzar) return Promise.resolve(p.lista);
+  if (p.cargando) return p.cargando;
+  p.error = '';
+  var pr = api({ accion: 'leerPropietarios' }).then(function(r){
+    if (!r.ok) throw new Error(r.error || 'Error');
+    p.lista = r.filas || [];
+    return p.lista;
+  });
+  p.cargando = pr;
+  pr.then(function(){ p.cargando = null; }, function(e){ p.cargando = null; p.error = e.message; });
+  return pr;
+}
+
+function _pintarPropietarioTab() {
+  var cont = document.getElementById('prop-contenido');
+  if (!cont || !S.edicion) return;
+  if (!S.prop.lista) {
+    if (S.prop.error) {
+      cont.innerHTML = '<div class="mensaje error">'+esc(S.prop.error)+'</div><button class="btn" onclick="S.prop.error=\'\';_pintarPropietarioTab()">Reintentar</button>';
+      return;
+    }
+    cont.innerHTML = '<p class="cargando" style="padding:14px 0">Cargando propietarios…</p>';
+    _cargarPropietarios().then(_pintarPropietarioTab, _pintarPropietarioTab);
+    return;
+  }
+  if (_pp.modo === 'form') { _pintarPropForm(cont); return; }
+  var id = _propIdActual();
+  if (id) { _pintarPropTarjeta(cont, id); return; }
+  _pintarPropBuscar(cont);
+}
+
+function _pintarPropBuscar(cont) {
+  var enc = valorCampo('encargado'), cel = valorCampo('celular');
+  var legado = (enc || cel)
+    ? '<button type="button" class="btn" onclick="propNuevo({nombre:valorCampo(\'encargado\'),whatsapp:valorCampo(\'celular\')})">Convertir «'+esc(enc||cel)+'» en propietario</button>'
+    : '';
+  cont.innerHTML =
+    '<div class="campo"><label for="pp-q">Buscar propietario</label>'+
+    '<input id="pp-q" type="search" autocomplete="off" placeholder="Nombre o WhatsApp…" value="'+esc(_pp.q)+'" oninput="_pp.q=this.value;_pintarPropResultados()"></div>'+
+    '<div class="prop-res" id="pp-res"></div>'+
+    '<div class="prop-acc" style="margin-top:0"><button type="button" class="btn btn-primario" onclick="propNuevo()">+ Nuevo propietario</button>'+legado+'</div>';
+  _pintarPropResultados();
+}
+
+function _pintarPropResultados() {
+  var el = document.getElementById('pp-res'); if (!el) return;
+  var q = norm(_pp.q), qd = q.replace(/\D/g,'');
+  var lista = (S.prop.lista || []).filter(function(o){
+    if (!q) return true;
+    return norm(o.nombre).indexOf(q) !== -1 || (qd.length >= 3 && String(o.whatsapp).replace(/\D/g,'').indexOf(qd) !== -1);
+  }).slice(0, 8);
+  if (!(S.prop.lista||[]).length) { el.innerHTML = '<p class="prop-vacio">Aún no tienes propietarios registrados.</p>'; return; }
+  if (!lista.length) { el.innerHTML = '<p class="prop-vacio">Ninguno coincide. Puedes crearlo con «+ Nuevo propietario».</p>'; return; }
+  el.innerHTML = lista.map(function(o){
+    return '<button type="button" data-id="'+esc(o.id)+'"><span class="n">'+esc(o.nombre)+'</span><span class="t">'+esc(o.whatsapp)+' · '+esc(o.id)+'</span></button>';
+  }).join('');
+  el.querySelectorAll('button').forEach(function(b){ b.onclick = function(){ vincularPropietario(b.dataset.id); }; });
+}
+
+function _pintarPropTarjeta(cont, id) {
+  var o = _propPorId(id), ed = S.edicion;
+  if (!o) {
+    cont.innerHTML = '<div class="mensaje error">El propietario vinculado ('+esc(id)+') ya no existe en tu lista.</div>'+
+      '<div class="prop-acc"><button type="button" class="btn" onclick="propQuitar()">Quitar vínculo</button></div>';
+    return;
+  }
+  var wa = waUrl(o.whatsapp);
+  var otros = (S.inm && S.inm.filas || []).filter(function(x){ return String(x.propietarioId||'').trim() === id && x._fila !== ed.fila; });
+  var otrosTxt = otros.length
+    ? 'Otros inmuebles de este propietario ('+otros.length+'): '+otros.slice(0,6).map(function(x){ return esc([x.tipo,x.barrio].filter(Boolean).join(' · ')||x.id)+(x.id?' ('+esc(x.id)+')':''); }).join(', ')
+    : 'Este es su único inmueble registrado.';
+  cont.innerHTML =
+    '<div class="prop-card">'+
+      '<div class="prop-nom">'+esc(o.nombre)+' <span class="etq-tipo">'+esc(o.id)+'</span></div>'+
+      '<div class="prop-dato">📱 '+(wa?'<a target="_blank" rel="noopener" href="'+esc(wa)+'">'+esc(o.whatsapp)+'</a>':esc(o.whatsapp))+'</div>'+
+      (o.correo?'<div class="prop-dato">✉️ '+esc(o.correo)+'</div>':'')+
+      (o.documento?'<div class="prop-dato">🪪 '+esc(o.documento)+'</div>':'')+
+      (o.notas?'<div class="prop-notas">'+esc(o.notas)+'</div>':'')+
+      '<div class="prop-otros">'+otrosTxt+'</div>'+
+      '<div class="prop-acc">'+
+        (wa?'<a class="btn" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
+        '<button type="button" class="btn" onclick="propEditar()">Editar datos</button>'+
+        '<button type="button" class="btn" onclick="propQuitar()">Cambiar / quitar</button>'+
+      '</div>'+
+    '</div>'+
+    '<p class="prop-vacio" style="padding-bottom:0">Solo lo ven los administradores. No sale en el catálogo ni en la ficha.</p>';
+}
+
+function _pintarPropForm(cont) {
+  var pre = _pp.pre || {};
+  cont.innerHTML =
+    '<div class="prop-form">'+
+    '<div class="campo"><label for="pp-nombre">Nombre *</label><input id="pp-nombre" type="text" autocomplete="off" maxlength="80" value="'+esc(pre.nombre||'')+'"></div>'+
+    '<div class="campo"><label for="pp-wa">WhatsApp *</label><input id="pp-wa" type="tel" inputmode="tel" autocomplete="off" maxlength="20" value="'+esc(pre.whatsapp||'')+'" placeholder="300 123 4567"></div>'+
+    '<div class="campo"><label for="pp-correo">Correo</label><input id="pp-correo" type="email" autocomplete="off" maxlength="80" value="'+esc(pre.correo||'')+'"></div>'+
+    '<div class="campo"><label for="pp-doc">Documento de identidad (opcional)</label><input id="pp-doc" type="text" autocomplete="off" maxlength="30" value="'+esc(pre.documento||'')+'"><span class="pista">Útil para autorizaciones y contratos. Es privado.</span></div>'+
+    '<div class="campo"><label for="pp-notas">Notas</label><textarea id="pp-notas" rows="3" maxlength="2000" placeholder="Ej. Apoderado: Camilo Henao (300 555 0199). Poder notarial vigente. Prefiere que lo llamen en la tarde.">'+esc(pre.notas||'')+'</textarea></div>'+
+    '<div class="prop-acc" style="margin-top:0"><span class="msg" id="pp-msg" style="flex:1;font-size:13px;color:var(--alerta)"></span>'+
+      '<button type="button" class="btn" onclick="propCancelar()">Cancelar</button>'+
+      '<button type="button" class="btn btn-primario" id="pp-guardar" onclick="guardarPropForm()">'+(_pp.editId?'Guardar cambios':'Guardar y vincular')+'</button></div>'+
+    '</div>';
+  setTimeout(function(){ var i = document.getElementById(pre.nombre?'pp-notas':'pp-nombre'); if (i) i.focus(); }, 50);
+}
+
+function propNuevo(pre) { _pp.modo = 'form'; _pp.editId = ''; _pp.pre = pre || null; _pintarPropietarioTab(); }
+function propEditar() {
+  var o = _propPorId(_propIdActual()); if (!o) return;
+  _pp.modo = 'form'; _pp.editId = o.id; _pp.pre = o; _pintarPropietarioTab();
+}
+function propCancelar() { _pp.modo = 'auto'; _pp.editId = ''; _pp.pre = null; _pintarPropietarioTab(); }
+function propQuitar() { if (!S.edicion) return; S.edicion.propId = ''; _pp.q = ''; marcarCambios(); _pintarPropietarioTab(); }
+
+function vincularPropietario(id) {
+  var o = _propPorId(id); if (!o || !S.edicion) return;
+  S.edicion.propId = id;
+  var e = document.getElementById('f-encargado'), c = document.getElementById('f-celular');
+  if (e) e.value = o.nombre;
+  if (c) c.value = o.whatsapp;
+  _pp.modo = 'auto'; _pp.q = '';
+  marcarCambios();
+  _pintarPropietarioTab();
+}
+
+function guardarPropForm() {
+  var v = function(k){ return document.getElementById('pp-'+k).value.trim(); };
+  var msg = document.getElementById('pp-msg');
+  var wa = v('wa').replace(/\D/g,'');
+  if (!v('nombre')) { msg.textContent = 'Escribe el nombre.'; document.getElementById('pp-nombre').focus(); return; }
+  if (wa.length < 7) { msg.textContent = 'El WhatsApp debe tener al menos 7 dígitos.'; document.getElementById('pp-wa').focus(); return; }
+  msg.textContent = '';
+  var editId = _pp.editId;
+  var btn = document.getElementById('pp-guardar');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  api({ accion: 'guardarPropietario', id: editId, nombre: v('nombre'), whatsapp: wa, correo: v('correo'),
+        documento: v('doc'), notas: document.getElementById('pp-notas').value, origen: 'Inmueble' }).then(function(r){
+    if (r.duplicado) {
+      var ex = r.existente || {};
+      if (confirm('Ya tienes a "'+(ex.nombre||'un propietario')+'" ('+(ex.id||'')+') con ese WhatsApp.\n\n¿Usar el que ya existe?\n\nAceptar = usarlo · Cancelar = seguir editando')) {
+        return _cargarPropietarios(true).then(function(){ vincularPropietario(ex.id); });
+      }
+      throw new Error('Cambia el WhatsApp o usa el propietario existente.');
+    }
+    if (!r.ok) throw new Error(r.error || 'Error');
+    var o = r.propietario, lista = S.prop.lista || (S.prop.lista = []), ya = false;
+    for (var i = 0; i < lista.length; i++) { if (lista[i].id === o.id) { lista[i] = o; ya = true; } }
+    if (!ya) lista.push(o);
+    toast(editId ? 'Propietario actualizado.' : 'Propietario creado y vinculado.');
+    _pp.modo = 'auto'; _pp.editId = ''; _pp.pre = null;
+    if (editId && !S.edicion) return;
+    vincularPropietario(o.id);   // al crear queda vinculado; al editar se refrescan también Encargado / Celular
+  }).catch(function(e){
+    var m = document.getElementById('pp-msg'); if (m) m.textContent = e.message;
+    var b = document.getElementById('pp-guardar'); if (b) { b.disabled = false; b.textContent = editId ? 'Guardar cambios' : 'Guardar y vincular'; }
+  });
+}
+
 /* ============================================================
    DOCUMENTOS — gestión (columna "documentos")
    ============================================================ */
@@ -1922,10 +2141,11 @@ function _pintarDocs() {
    SUBIR ARCHIVOS (fotos e imágenes/PDFs de documentos)
    ============================================================ */
 function verArchTab(cual) {
-  ['fotos','docs'].forEach(function(k){
+  ['fotos','docs','prop'].forEach(function(k){
     document.getElementById('tab-'+k).setAttribute('aria-selected', cual===k);
     document.getElementById('panel-'+k).hidden = cual!==k;
   });
+  if (cual==='prop') _pintarPropietarioTab();
 }
 
 function subirArchivos(archivos, tipo) {
