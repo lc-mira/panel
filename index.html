@@ -290,6 +290,10 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .prop-card .prop-dato { font-size: 13px; color: var(--suave); margin-top: 4px; word-break: break-word; }
 .prop-card .prop-notas { font-size: 13px; color: var(--tinta); margin-top: 8px; white-space: pre-wrap; background: var(--fondo); border-radius: 8px; padding: 8px 10px; }
 .prop-card .prop-otros { font-size: 12.5px; color: var(--suave); margin-top: 8px; }
+.inm-prop { font-size: 12.5px; color: var(--suave); margin-top: 2px; cursor: pointer; }
+.inm-prop:hover { text-decoration: underline; }
+.ps-inm { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: var(--papel); border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; margin-top: 6px; cursor: pointer; font: inherit; }
+.ps-inm .n { font-weight: 600; font-size: 13px; } .ps-inm .t { font-size: 12px; color: var(--suave); }
 .prop-acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .prop-acc .btn { padding: 7px 12px; font-size: 13px; text-decoration: none; display: inline-block; }
 .prop-res { display: grid; gap: 6px; margin: 8px 0 12px; }
@@ -698,6 +702,13 @@ main, .lista > * { min-width: 0; max-width: 100%; }
       <button class="btn" onclick="salirOpcion('salir')">Salir</button>
       <button class="btn btn-primario" onclick="salirOpcion('actualizar')">Actualizar</button>
     </div>
+  </div>
+</div>
+
+<div class="capa capa-aviso" id="capa-prop" hidden onclick="if(event.target===this) cerrarPropSheet()">
+  <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="ps-titulo">
+    <div class="hoja-cab"><h2 id="ps-titulo">Propietario</h2><button class="cerrar" aria-label="Cerrar" onclick="cerrarPropSheet()">×</button></div>
+    <div class="hoja-cuerpo" id="ps-cuerpo"></div>
   </div>
 </div>
 
@@ -1259,6 +1270,7 @@ window.addEventListener('popstate', function (ev) {
   if (!document.getElementById('capa-img').hidden) { cerrarImagen(true); return; }
   if (!document.getElementById('capa-lead').hidden) { cerrarLead(true); return; }
   if (!document.getElementById('capa-estado').hidden) { cerrarCambioEstado(true); return; }
+  if (!document.getElementById('capa-prop').hidden) { cerrarPropSheet(true); return; }
   var inm = !document.getElementById('capa').hidden;
   var req = !document.getElementById('capa-req').hidden;
   if (inm) {
@@ -1307,6 +1319,7 @@ function cargarInmuebles() {
     document.getElementById('num-inm').textContent = S.inm.filas.length;
     pintarChipsInm();
     pintarInmuebles();
+    if (F.propietarios && !S.prop.lista && !S.prop.cargando) _cargarPropietarios().then(pintarInmuebles, function(){});   // nombres en las tarjetas
     if (S.leads) pintarLeads(); // para que los leads muestren el encargado del inmueble
   }).catch(function (e) {
     document.getElementById('lista-inm').innerHTML = '<div class="mensaje error">'+esc(e.message)+'</div>';
@@ -1409,7 +1422,8 @@ function pintarInmuebles() {
   var q = norm(document.getElementById('buscar-inm').value);
   var filas = S.inm.filas.filter(function(f) {
     if (S.filtroInm !== '*' && (f.estado||'Sin estado') !== S.filtroInm) return false;
-    return !q || norm([f.tipo,f.barrio,f.ciudad,f.proyecto,f.id,f.encargado].join(' ')).indexOf(q)!==-1;
+    var po = _propDeInm(f);
+    return !q || norm([f.tipo,f.barrio,f.ciudad,f.proyecto,f.id,f.encargado, po ? po.nombre+' '+po.whatsapp : ''].join(' ')).indexOf(q)!==-1;
   }).sort(function(a, b) { return (b._fila || 0) - (a._fila || 0); });   // más recientes (últimas filas) primero
   var cont = document.getElementById('lista-inm');
   if (!filas.length) { cont.innerHTML = '<p class="vacio">No hay inmuebles con ese filtro.</p>'; return; }
@@ -1420,6 +1434,7 @@ function pintarInmuebles() {
       (f._img ? '<img class="inm-img" referrerpolicy="no-referrer" loading="lazy" src="'+esc(f._img)+'" alt="">' : '<span class="inm-sinfoto">Sin foto</span>') +
       '<span class="info"><div class="tit">'+esc([f.tipo,f.barrio,f.ciudad].filter(Boolean).join(' · ')||'Sin datos')+'</div>' +
       '<div class="sub">'+esc([f.proyecto,det].filter(Boolean).join(' — '))+'</div>' +
+      (function(){ var po = _propDeInm(f); return po ? '<div class="inm-prop" data-prop="'+esc(po.id)+'" title="Ver propietario">👤 '+esc(po.nombre)+'</div>' : ''; })() +
       (precio ? '<div class="precio-m">'+esc(precio)+'</div>' : '') +
       (f.estado ? '<span class="etq'+(/disponible/i.test(f.estado)?' disp':'')+'">'+esc(f.estado)+'</span>' : '') +
       (/propio/i.test(f.captacion||'') ? '<span class="etq propia">Propio</span>' : '') +
@@ -1441,6 +1456,9 @@ function pintarInmuebles() {
       else if (acc === 'ficha') compartirFichaSinContacto(fila);
       else if (acc === 'imagen') generarImagenEstados(fila, b);
     };
+  });
+  cont.querySelectorAll('.inm-prop').forEach(function(b){
+    b.onclick = function(ev){ ev.stopPropagation(); abrirPropSheet(b.dataset.prop); };
   });
 }
 
@@ -2252,6 +2270,146 @@ function guardarPropForm() {
 }
 
 /* ============================================================
+   PROPIETARIOS — desde un lead (B) y ficha del propietario (C)
+   ============================================================ */
+function _propDeInm(f) {
+  var id = String((f && f.propietarioId) || '').trim();
+  if (!id || !F.propietarios || !S.prop.lista) return null;
+  return _propPorId(id);
+}
+
+/** B: lead de propietario en etapa Captado → crea el propietario (o usa el que ya existe) y abre el inmueble vinculado. */
+function propDesdeLead(fila, btn) {
+  var f = S.leads && S.leads.filas.filter(function(x){ return String(x.fila) === String(fila); })[0];
+  if (!f) return;
+  var wa = String(f.whatsapp || '').replace(/\D/g, '');
+  var previo = btn ? btn.textContent : '';
+  var libre = function(){ if (btn) { btn.disabled = false; btn.textContent = previo; } };
+  if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+  _cargarPropietarios().catch(function(){ return []; }).then(function(lista){
+    // ¿Ya se creó el propietario de este lead? Se reutiliza (no se duplica).
+    var ex = (lista || []).filter(function(o){ return String(o.lead) === String(f.fila); })[0];
+    if (ex) return { id: ex.id, ya: true };
+    if (wa.length < 7) throw new Error('El lead no tiene un WhatsApp válido. Corrígelo antes de crear el propietario.');
+    return api({ accion: 'guardarPropietario', nombre: f.nombre, whatsapp: wa, origen: 'Lead', lead: String(f.fila),
+                 notas: 'Captado desde lead' + (f.origen ? ' (' + f.origen + ')' : '') + (f.fecha ? ' · ' + f.fecha : '') }).then(function(r){
+      if (r.duplicado) { var e = r.existente || {}; return _cargarPropietarios(true).then(function(){ return { id: e.id, ya: true }; }); }
+      if (!r.ok) throw new Error(r.error || 'No se pudo crear el propietario.');
+      var l = S.prop.lista || (S.prop.lista = []); l.push(r.propietario);
+      return { id: r.propietario.id, ya: false };
+    });
+  }).then(function(x){
+    libre();
+    _inmuebleDesdeLead(f, x.id);
+    toast(x.ya ? 'Propietario ya registrado: se vinculó al nuevo inmueble.' : 'Propietario creado. Completa el inmueble y guarda.');
+  }).catch(function(e){
+    libre();
+    toast('Error: ' + e.message, 6000);
+  });
+}
+
+function _inmuebleDesdeLead(f, propId) {
+  var o = _propPorId(propId) || { nombre: f.nombre, whatsapp: f.whatsapp };
+  var arr = f.operacion === 'Arrendar';
+  var pre = { estado: 'Disponible', servicio: arr ? 'Arriendo' : 'Venta', barrio: f.zona || '', encargado: o.nombre, celular: o.whatsapp };
+  var pd = soloDigitos(f.presupuesto || '');
+  if (pd) pre[arr ? 'canon' : 'precio'] = pd;
+  if (f.inmueble) pre.notasPrivadas = 'Lead: ' + f.inmueble;
+  _pp = { modo: 'auto', editId: '', q: '', pre: null };
+  abrirInmueble(null);
+  S.edicion.vals = pre;
+  elegirOrigen('Propio');
+  S.edicion.vals = { captacion: 'Propio' };     // lo prellenado cuenta como cambio por guardar
+  S.edicion.propId = propId;
+  marcarCambios();
+  verArchTab('prop');
+}
+
+/* C: ficha del propietario con todos sus inmuebles */
+var _ps = null;   // { id, modo: 'ver' | 'form' }
+function abrirPropSheet(id) {
+  var ir = function(){
+    if (!_propPorId(id)) { toast('No se encontró ese propietario.'); return; }
+    _ps = { id: id, modo: 'ver' };
+    _pintarPropSheet();
+    document.getElementById('capa-prop').hidden = false;
+    histAbrir();
+  };
+  if (S.prop.lista) ir(); else _cargarPropietarios().then(ir, function(e){ toast('Error: ' + e.message); });
+}
+function cerrarPropSheet(desdeHistorial) {
+  document.getElementById('capa-prop').hidden = true;
+  _ps = null;
+  if (!desdeHistorial) histCerrar();
+}
+function _pintarPropSheet() {
+  var cont = document.getElementById('ps-cuerpo');
+  var o = _ps && _propPorId(_ps.id);
+  if (!o) { cont.innerHTML = '<p class="prop-vacio">Este propietario ya no existe.</p>'; return; }
+  if (_ps.modo === 'form') {
+    cont.innerHTML =
+      '<div class="prop-form">'+
+      '<div class="campo"><label for="ps-nombre">Nombre *</label><input id="ps-nombre" type="text" autocomplete="off" maxlength="80" value="'+esc(o.nombre)+'"></div>'+
+      '<div class="campo"><label for="ps-wa">WhatsApp *</label><input id="ps-wa" type="tel" inputmode="tel" autocomplete="off" maxlength="20" value="'+esc(o.whatsapp)+'"></div>'+
+      '<div class="campo"><label for="ps-correo">Correo</label><input id="ps-correo" type="email" autocomplete="off" maxlength="80" value="'+esc(o.correo||'')+'"></div>'+
+      '<div class="campo"><label for="ps-doc">Documento de identidad (opcional)</label><input id="ps-doc" type="text" autocomplete="off" maxlength="30" value="'+esc(o.documento||'')+'"></div>'+
+      '<div class="campo"><label for="ps-notas">Notas</label><textarea id="ps-notas" rows="3" maxlength="2000">'+esc(o.notas||'')+'</textarea></div>'+
+      '<div class="prop-acc" style="margin-top:0"><span class="msg" id="ps-msg" style="flex:1;font-size:13px;color:var(--alerta)"></span>'+
+        '<button type="button" class="btn" onclick="_ps.modo=\'ver\';_pintarPropSheet()">Cancelar</button>'+
+        '<button type="button" class="btn btn-primario" id="ps-guardar" onclick="guardarPropSheet()">Guardar cambios</button></div>'+
+      '</div>';
+    return;
+  }
+  var wa = waUrl(o.whatsapp);
+  var inms = (S.inm && S.inm.filas || []).filter(function(x){ return String(x.propietarioId||'').trim() === o.id; })
+    .sort(function(a, b){ return (b._fila||0) - (a._fila||0); });
+  cont.innerHTML =
+    '<div class="prop-card">'+
+      '<div class="prop-nom">'+esc(o.nombre)+' <span class="etq-tipo">'+esc(o.id)+'</span></div>'+
+      '<div class="prop-dato">📱 '+(wa?'<a target="_blank" rel="noopener" href="'+esc(wa)+'">'+esc(o.whatsapp)+'</a>':esc(o.whatsapp))+'</div>'+
+      (o.correo?'<div class="prop-dato">✉️ '+esc(o.correo)+'</div>':'')+
+      (o.documento?'<div class="prop-dato">🪪 '+esc(o.documento)+'</div>':'')+
+      (o.notas?'<div class="prop-notas">'+esc(o.notas)+'</div>':'')+
+      '<div class="prop-acc">'+
+        (wa?'<a class="btn" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
+        '<button type="button" class="btn" onclick="_ps.modo=\'form\';_pintarPropSheet()">Editar datos</button>'+
+      '</div>'+
+    '</div>'+
+    '<h3 style="font-size:13px;margin:14px 0 2px">Inmuebles ('+inms.length+')</h3>'+
+    (inms.length ? inms.map(function(x){
+      var pr = x.precio ? formatPrecio(x.precio) : (x.canon ? formatPrecio(x.canon)+'/mes' : '');
+      return '<button type="button" class="ps-inm" data-fila="'+x._fila+'"><span><span class="n">'+esc([x.tipo,x.barrio].filter(Boolean).join(' · ')||x.id||'Inmueble')+'</span><br><span class="t">'+esc([x.id,x.estado,pr].filter(Boolean).join(' · '))+'</span></span><span>›</span></button>';
+    }).join('') : '<p class="prop-vacio">Aún no tiene inmuebles vinculados.</p>');
+  cont.querySelectorAll('.ps-inm').forEach(function(b){
+    b.onclick = function(){
+      // La ficha se oculta pero conserva su entrada de historial: el editor la reutiliza (un solo "atrás").
+      document.getElementById('capa-prop').hidden = true; _ps = null;
+      abrirInmueble(Number(b.dataset.fila));
+    };
+  });
+}
+function guardarPropSheet() {
+  var o = _ps && _propPorId(_ps.id); if (!o) return;
+  var v = function(k){ return document.getElementById('ps-'+k).value.trim(); };
+  var msg = document.getElementById('ps-msg');
+  var wa = v('wa').replace(/\D/g, '');
+  if (!v('nombre')) { msg.textContent = 'Escribe el nombre.'; return; }
+  if (wa.length < 7) { msg.textContent = 'El WhatsApp debe tener al menos 7 dígitos.'; return; }
+  var btn = document.getElementById('ps-guardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+  api({ accion: 'guardarPropietario', id: o.id, nombre: v('nombre'), whatsapp: wa, correo: v('correo'),
+        documento: v('doc'), notas: document.getElementById('ps-notas').value }).then(function(r){
+    if (!r.ok) throw new Error(r.error || 'Error');
+    var l = S.prop.lista; for (var i = 0; i < l.length; i++) { if (l[i].id === r.propietario.id) l[i] = r.propietario; }
+    toast('Propietario actualizado.');
+    if (_ps) { _ps.modo = 'ver'; _pintarPropSheet(); }
+    pintarInmuebles();
+  }).catch(function(e){
+    var m = document.getElementById('ps-msg'); if (m) m.textContent = e.message;
+    var b = document.getElementById('ps-guardar'); if (b) { b.disabled = false; b.textContent = 'Guardar cambios'; }
+  });
+}
+
+/* ============================================================
    DOCUMENTOS — gestión (columna "documentos")
    ============================================================ */
 function _listaDocs() {
@@ -2747,6 +2905,7 @@ function leadHtml(f) {
       '<select class="etapa '+claseEtapa(f.pipeline)+'" aria-label="Etapa">'+ops+'</select>'+
       '<button class="btn btn-primario guardar">Guardar</button>'+
       (t!=='Propietario'?'<button class="btn crear-req" title="Crear requerimiento con datos de este lead">+ Req</button>':'')+
+      (t==='Propietario' && F.propietarios && f.pipeline==='Captado' ? '<button class="btn crear-prop" title="Crea el propietario con los datos del lead y abre el inmueble ya vinculado">🏠 Crear propietario e inmueble</button>' : '')+
     '</div>'+
     (f.notas?'<div class="notas">'+esc(f.notas)+'</div>':'')+
     '<textarea class="nota" rows="1" placeholder="Agregar nota…"></textarea>'+
@@ -2760,6 +2919,8 @@ function wireLead(art) {
   art.querySelector('.guardar').onclick = function(){ guardarLead(art); };
   var br = art.querySelector('.crear-req');
   if (br) br.onclick = function(){ reqDesdeLead(art.dataset.fila); };
+  var bp = art.querySelector('.crear-prop');
+  if (bp) bp.onclick = function(){ propDesdeLead(art.dataset.fila, bp); };
 }
 
 function guardarLead(art) {
