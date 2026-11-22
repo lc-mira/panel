@@ -102,7 +102,7 @@ main { max-width: 1000px; margin: 0 auto; padding: 16px; }
 .chip { border: 1px solid var(--linea); background: var(--papel); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-size: 13px; color: var(--suave); }
 .chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 .lista { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior-y: contain; }
+html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior-y: none; }
 main, .lista > * { min-width: 0; max-width: 100%; }
 .vacio, .cargando { text-align: center; color: var(--tenue); padding: 40px 10px; }
 
@@ -1176,7 +1176,7 @@ function histCerrar() {
 
 /* ---- Pantallas (pestañas y tipo de lead): "atrás" vuelve a la pantalla anterior ----
    El historial tiene una entrada base y una de inicio; cada pantalla nueva suma una entrada.
-   Estando en el inicio, "atrás" (o deslizar para actualizar) pregunta si actualizar o salir. */
+   Estando en el inicio, "atrás" pregunta si actualizar o salir. */
 var navPila = [];       // pantallas anteriores: {pest, tipo}
 var navDeshacer = false;
 function _pantallaActual() { return { pest: _pestanaActual(), tipo: S.tipoLead || '' }; }
@@ -1238,22 +1238,6 @@ function salirOpcion(op) {
   }
 }
 var permitirSalida = false;
-/* Deslizar hacia abajo desde arriba (actualizar del navegador): se reemplaza por la pregunta. */
-(function () {
-  var y0 = null, disparado = false;
-  document.addEventListener('touchstart', function (e) {
-    y0 = (window.scrollY <= 0 && e.touches.length === 1) ? e.touches[0].clientY : null; disparado = false;
-  }, { passive: true });
-  document.addEventListener('touchmove', function (e) {
-    if (y0 === null || disparado) return;
-    if (e.touches[0].clientY - y0 > 110 && window.scrollY <= 0) {
-      var abierta = document.querySelector('.capa:not([hidden])');
-      if (abierta) return;
-      disparado = true; preguntarSalir();
-    }
-  }, { passive: true });
-})();
-
 window.addEventListener('popstate', function (ev) {
   if (ignorarPop > 0) { ignorarPop--; return; }
   if (permitirSalida || !navActivo) return;
