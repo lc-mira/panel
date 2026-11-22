@@ -102,7 +102,7 @@ main { max-width: 1000px; margin: 0 auto; padding: 16px; }
 .chip { border: 1px solid var(--linea); background: var(--papel); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-size: 13px; color: var(--suave); }
 .chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 .lista { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-html, body { overflow-x: hidden; max-width: 100%; }
+html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior-y: contain; }
 main, .lista > * { min-width: 0; max-width: 100%; }
 .vacio, .cargando { text-align: center; color: var(--tenue); padding: 40px 10px; }
 
@@ -190,8 +190,14 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .temp.rojo { background: #fee2e2; color: #b91c1c; } .temp.vencido { background: #5c1d1d; color: #fff; }
 .lead.t-verde { box-shadow: inset 4px 0 0 #22c55e; } .lead.t-amarillo { box-shadow: inset 4px 0 0 #eab308; }
 .lead.t-rojo { box-shadow: inset 4px 0 0 #ef4444; } .lead.t-vencido { box-shadow: inset 4px 0 0 #5c1d1d; }
-.e-Nuevo { background: #e0e7ff; } .e-Contactado { background: #fef3c7; } .e-Calificado { background: #bbf7d0; }
-.e-Visita { background: #86efac; } .e-Negocio { background: #22c55e; color:#fff; } .e-No { background: #fecaca; }
+.e-Nuevo { background: #fed7aa; color:#9a3412; } .e-Contactado { background: #fed7aa; color:#9a3412; } .e-Calificado { background: #bbf7d0; color:#166534; }
+.e-Visita { background: #fed7aa; color:#9a3412; } .e-Negocio { background: #e5e7eb; color:#6b7280; } .e-No { background: #e5e7eb; color:#6b7280; }
+.chip.ch-aten { background:#fff7ed; border-color:#fb923c; color:#c2410c; font-weight:600; }
+.chip.ch-ok { background:#f0fdf4; border-color:#4ade80; color:#166534; }
+.chip.ch-gris { background:#f3f4f6; border-color:#e5e7eb; color:#9ca3af; }
+.chip.ch-aten[aria-pressed="true"] { background:#f97316; border-color:#f97316; color:#fff; }
+.chip.ch-ok[aria-pressed="true"] { background:#16a34a; border-color:#16a34a; color:#fff; }
+.chip.ch-gris[aria-pressed="true"] { background:#6b7280; border-color:#6b7280; color:#fff; }
 .e-Negociacion { background: #d9f99d; } .e-Precio { background: #bae6fd; } .e-Captado { background: #86efac; }
 .e-Publicado { background: #22c55e; color:#fff; } .e-Estudio { background: #ddd6fe; } .e-Contrato { background: #22c55e; color:#fff; }
 .hub-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 14px; }
@@ -614,6 +620,11 @@ main, .lista > * { min-width: 0; max-width: 100%; }
                oninput="formatearDineroInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();responderComision(false);}">
         <span class="pista">En pesos, ej. 12.000.000. Si no hubo comisión, deja 0.</span>
       </div>
+      <div class="campo">
+        <label for="com-fecha">Fecha de venta</label>
+        <input id="com-fecha" type="date">
+        <span class="pista">Por defecto, hoy. Se pide aunque la comisión sea 0.</span>
+      </div>
     </div>
     <div class="hoja-pie">
       <button class="btn" onclick="cancelarComision()">Cancelar cambio de estado</button>
@@ -678,6 +689,18 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 <!-- ============================================================
      MODAL — CAMBIAR ESTADO (acción rápida de la tarjeta)
      ============================================================ -->
+<div class="capa capa-aviso" id="capa-salir" hidden>
+  <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="salir-titulo">
+    <div class="hoja-cab"><h2 id="salir-titulo">¿Qué quieres hacer?</h2></div>
+    <div class="hoja-cuerpo"><p style="font-size:13px;color:var(--suave)">Estás en el inicio del panel. Puedes actualizar los datos o salir.</p></div>
+    <div class="hoja-pie">
+      <button class="btn" onclick="salirOpcion('seguir')">Seguir aquí</button>
+      <button class="btn" onclick="salirOpcion('salir')">Salir</button>
+      <button class="btn btn-primario" onclick="salirOpcion('actualizar')">Actualizar</button>
+    </div>
+  </div>
+</div>
+
 <div class="capa capa-aviso" id="capa-estado" hidden>
   <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="ce-titulo">
     <div class="hoja-cab"><h2>Cambiar estado</h2></div>
@@ -689,6 +712,11 @@ main, .lista > * { min-width: 0; max-width: 100%; }
         <input id="ce-com" type="text" inputmode="numeric" autocomplete="off" placeholder="0"
                oninput="formatearDineroInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarCambioEstado();}">
         <span class="pista">Para tu declaración de renta. Si no hubo comisión, deja 0.</span>
+      </div>
+      <div class="campo" id="ce-fecha-caja" hidden>
+        <label for="ce-fecha">¿Qué día se cerró el negocio?</label>
+        <input id="ce-fecha" type="date">
+        <span class="pista">Por defecto, hoy.</span>
       </div>
     </div>
     <div class="hoja-pie">
@@ -752,7 +780,7 @@ var S = {
   edicion:    null,  // {fila, huella, iniciales, auto, carpeta}
   edReq:      null,
   filtroInm:  'Disponible',   // por defecto solo Disponibles; '*' = Todos
-  filtroLead: 'Todos',
+  filtroLead: 'Nuevo',
   tipoLead:   '',             // embudo abierto ('' = pantalla de inicio con los 3 tipos)
   prop:       { lista: null, cargando: null, error: '' },   // propietarios registrados (se cargan al abrir la pestaña)
   filtroTemp: '',
@@ -1070,8 +1098,28 @@ function dineroVista(v) {
   return d === null ? String(v == null ? '' : v) : conMiles(d);
 }
 /** Valor comparable/guardable de un campo: dinero → solo dígitos; el resto → texto recortado. */
+/* ---- Fechas (dd/mm/aaaa, hora de Colombia) ---- */
+function hoyISO() {
+  var p = {};
+  try {
+    new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+  } catch (e) {}
+  if (!p.day) { var d = new Date(); p.year = d.getFullYear(); p.month = ('0' + (d.getMonth() + 1)).slice(-2); p.day = ('0' + d.getDate()).slice(-2); }
+  return p.year + '-' + p.month + '-' + p.day;
+}
+/** Acepta dd/mm/aaaa, aaaa-mm-dd (o ISO largo) y devuelve dd/mm/aaaa ('' si no se entiende). */
+function fechaVista(v) {
+  v = String(v == null ? '' : v).trim();
+  var m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[3] + '/' + m[2] + '/' + m[1];
+  m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) return ('0' + m[1]).slice(-2) + '/' + ('0' + m[2]).slice(-2) + '/' + (m[3].length === 2 ? '20' + m[3] : m[3]);
+  return v;
+}
 function valorNormal(clave, v) {
   v = String(v == null ? '' : v).trim();
+  if (clave === 'fechaVenta') return fechaVista(v);
   if (CAMPOS_DINERO.indexOf(clave) !== -1) { var d = soloDigitos(v); if (d !== null) return d; }
   return v;
 }
@@ -1107,13 +1155,103 @@ function histAbrir() {
   if (capaHist) return;
   try { history.pushState({ lcCapa: 1 }, ''); capaHist = true; } catch (e) {}
 }
+var ignorarPop = 0;     // popstate provocados por nuestro propio history.back()
 function histCerrar() {
   if (!capaHist) return;
   capaHist = false;
-  try { history.back(); } catch (e) {}
+  ignorarPop++;
+  try { history.back(); } catch (e) { ignorarPop--; }
 }
-window.addEventListener('popstate', function () {
-  if (!capaHist) return;          // no es una hoja nuestra
+
+/* ---- Pantallas (pestañas y tipo de lead): "atrás" vuelve a la pantalla anterior ----
+   El historial tiene una entrada base y una de inicio; cada pantalla nueva suma una entrada.
+   Estando en el inicio, "atrás" (o deslizar para actualizar) pregunta si actualizar o salir. */
+var navPila = [];       // pantallas anteriores: {pest, tipo}
+var navDeshacer = false;
+function _pantallaActual() { return { pest: _pestanaActual(), tipo: S.tipoLead || '' }; }
+function _pestanaActual() {
+  var r = 'inm';
+  ['inm','leads','req'].forEach(function (k) { if (!document.getElementById('sec-'+k).hidden) r = k; });
+  return r;
+}
+function navEmpujar() {            // llamar ANTES de cambiar de pantalla
+  if (navDeshacer) return;
+  navPila.push(_pantallaActual());
+  try { history.pushState({ lcNav: 1 }, ''); } catch (e) { navPila.pop(); }
+}
+function _mismaPantalla(a, b) { return a && b && a.pest === b.pest && a.tipo === b.tipo; }
+/** Cambia a una pantalla: si es justo la anterior, retrocede en el historial; si no, suma una entrada. */
+function navIr(destino, aplicar) {
+  var ant = navPila[navPila.length - 1];
+  if (_mismaPantalla(ant, destino)) { history.back(); return; }
+  if (_mismaPantalla(_pantallaActual(), destino)) { aplicar(); return; }
+  navEmpujar();
+  aplicar();
+}
+function _restaurarPantalla(p) {
+  navDeshacer = true;
+  try {
+    verPestana(p.pest, true);
+    if (p.pest === 'leads') {
+      if (p.tipo) abrirTipoLead(p.tipo, true); else volverHubLeads(true);
+    }
+  } finally { navDeshacer = false; }
+}
+var navActivo = false;
+function navIniciar() {
+  navActivo = true;
+  try {
+    if (history.state && history.state.lcRoot) return;
+    history.replaceState({ lcBase: 1 }, '');
+    history.pushState({ lcRoot: 1 }, '');
+  } catch (e) {}
+}
+var _salirAbierto = false;
+function preguntarSalir() {
+  if (_salirAbierto) return;
+  _salirAbierto = true;
+  document.getElementById('capa-salir').hidden = false;
+}
+function salirOpcion(op) {
+  document.getElementById('capa-salir').hidden = true;
+  _salirAbierto = false;
+  if (op === 'actualizar') {
+    if (typeof pendientes !== 'undefined' && pendientes > 0) { toast('Espera: se están guardando cambios.'); try { history.pushState({ lcRoot: 1 }, ''); } catch (e) {} return; }
+    location.reload();
+  } else if (op === 'salir') {
+    permitirSalida = true;
+    try { history.back(); } catch (e) {}
+    setTimeout(function () { try { window.close(); } catch (e) {} }, 150);
+  } else {
+    try { history.pushState({ lcRoot: 1 }, ''); } catch (e) {}   // seguir aquí
+  }
+}
+var permitirSalida = false;
+/* Deslizar hacia abajo desde arriba (actualizar del navegador): se reemplaza por la pregunta. */
+(function () {
+  var y0 = null, disparado = false;
+  document.addEventListener('touchstart', function (e) {
+    y0 = (window.scrollY <= 0 && e.touches.length === 1) ? e.touches[0].clientY : null; disparado = false;
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (y0 === null || disparado) return;
+    if (e.touches[0].clientY - y0 > 110 && window.scrollY <= 0) {
+      var abierta = document.querySelector('.capa:not([hidden])');
+      if (abierta) return;
+      disparado = true; preguntarSalir();
+    }
+  }, { passive: true });
+})();
+
+window.addEventListener('popstate', function (ev) {
+  if (ignorarPop > 0) { ignorarPop--; return; }
+  if (permitirSalida || !navActivo) return;
+  if (!capaHist) {                // no es una hoja: es navegación entre pantallas
+    if (!document.getElementById('capa-salir').hidden) { return; }
+    if (navPila.length) { _restaurarPantalla(navPila.pop()); return; }
+    preguntarSalir();             // ya estaba en el inicio
+    return;
+  }
   capaHist = false;               // el navegador ya retrocedió una entrada
   if (!document.getElementById('capa-comision').hidden) {   // pregunta de comisión abierta: cancela el cambio de estado
     cancelarComision(); histAbrir(); return;
@@ -1149,7 +1287,8 @@ function toggleSeccion(id) {
 /* ============================================================
    PESTAÑAS PRINCIPALES
    ============================================================ */
-function verPestana(cual) {
+function verPestana(cual, sinHistorial) {
+  if (!sinHistorial && cual !== _pestanaActual()) { navIr({ pest: cual, tipo: cual === 'leads' ? (S.tipoLead || '') : '' }, function () { verPestana(cual, true); }); return; }
   ['inm','leads','req'].forEach(function(k) {
     document.getElementById('tab-'+k).setAttribute('aria-selected', cual===k);
     document.getElementById('sec-'+k).hidden = cual!==k;
@@ -1206,6 +1345,7 @@ var REGLAS_COLUMNAS = [
   ['notasPrivadas', function(h){ return h.indexOf('nota') === 0; }],
   ['documentos',    function(h){ return h.indexOf('documento') === 0; }],
   ['comision',      function(h){ return h.indexOf('comision') === 0; }],
+  ['fechaVenta',    function(h){ return h.indexOf('fecha') === 0; }],
   ['propietarioId', function(h){ return h.indexOf('propietario') === 0; }]
 ];
 
@@ -1270,7 +1410,7 @@ function pintarInmuebles() {
   var filas = S.inm.filas.filter(function(f) {
     if (S.filtroInm !== '*' && (f.estado||'Sin estado') !== S.filtroInm) return false;
     return !q || norm([f.tipo,f.barrio,f.ciudad,f.proyecto,f.id,f.encargado].join(' ')).indexOf(q)!==-1;
-  });
+  }).sort(function(a, b) { return (b._fila || 0) - (a._fila || 0); });   // más recientes (últimas filas) primero
   var cont = document.getElementById('lista-inm');
   if (!filas.length) { cont.innerHTML = '<p class="vacio">No hay inmuebles con ese filtro.</p>'; return; }
   cont.innerHTML = filas.slice(0,300).map(function(f) {
@@ -1320,6 +1460,7 @@ function abrirCambioEstado(fila) {
   document.getElementById('ce-titulo').textContent = _tituloInm(f);
   document.getElementById('ce-msg').textContent = '';
   document.getElementById('ce-com').value = conMiles(soloDigitos(f.comision || '') || '');
+  document.getElementById('ce-fecha').value = hoyISO();
   _pintarChipsEstado();
   document.getElementById('capa-estado').hidden = false;
   histAbrir();
@@ -1334,6 +1475,7 @@ function _pintarChipsEstado() {
   });
   var pideCom = ESTADOS_CIERRE.test(_ce.elegido) && norm(_ce.elegido) !== norm(_ce.original);
   document.getElementById('ce-com-caja').hidden = !pideCom;
+  document.getElementById('ce-fecha-caja').hidden = !pideCom;
   if (pideCom) setTimeout(function(){ var i = document.getElementById('ce-com'); i.focus(); i.select(); }, 50);
 }
 function cerrarCambioEstado(desdeHistorial) {
@@ -1350,12 +1492,14 @@ function guardarCambioEstado() {
   if (ESTADOS_CIERRE.test(_ce.elegido)) {
     // La pregunta de la comisión es obligatoria; el valor no (puede ser 0).
     campos.comision = soloDigitos(document.getElementById('ce-com').value) || '0';
+    // También se pide la fecha de venta (por defecto hoy), aunque la comisión sea 0.
+    campos.fechaVenta = fechaVista(document.getElementById('ce-fecha').value || hoyISO());
   }
   var fila = _ce.fila, estado = _ce.elegido;
   var f = _inmPorFila(fila);
   cerrarCambioEstado();
   toast('Estado actualizado a ' + estado + '.');
-  if (f) { f.estado = estado; if (campos.comision !== undefined) f.comision = campos.comision; pintarChipsInm(); pintarInmuebles(); }
+  if (f) { f.estado = estado; if (campos.comision !== undefined) { f.comision = campos.comision; f.fechaVenta = campos.fechaVenta; } pintarChipsInm(); pintarInmuebles(); }
   enCola(api({ accion: 'guardarInmueble', fila: fila, campos: campos })).then(function(r){
     if (!r.ok) throw new Error(r.error || 'Error al guardar');
     return cargarInmuebles();
@@ -1473,7 +1617,7 @@ function imagenCopiarTexto() {
    ============================================================ */
 var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','link'];
 var CAMPOS_PRIVADOS = ['encargado','celular','notasPrivadas'];
-var CAMPOS_COMISION = ['comision'];
+var CAMPOS_COMISION = ['comision','fechaVenta'];
 var CAMPOS_READONLY = ['id'];
 
 var OPCIONES = {
@@ -1634,7 +1778,7 @@ function _tituloLabel(clave) {
     estado:'Estado', servicio:'Servicio', credito:'Aplica crédito',
     observaciones:'Observaciones públicas', link:'Link ficha externa',
     captacion:'Captación', encargado:'Encargado', celular:'Celular encargado',
-    notasPrivadas:'Notas privadas', documentos:'Documentos', comision:'Comisión (COP)',
+    notasPrivadas:'Notas privadas', documentos:'Documentos', comision:'Comisión (COP)', fechaVenta:'Fecha de venta (dd/mm/aaaa)',
     id:'ID (automático)'
   };
   return m[clave] || clave;
@@ -1650,6 +1794,7 @@ function _pista(clave) {
     observaciones: 'Pública — la ven los visitantes del catálogo. Teléfonos y correos se ocultan solos.',
     notasPrivadas: 'Privada — solo la ven los administradores. Puedes anotar saldo de hipoteca, condiciones, etc.',
     comision: 'En pesos (ej. 12.000.000). Puede ser 0.',
+    fechaVenta: 'Día en que se cerró el negocio. Por defecto, hoy.',
     id: 'El sistema lo asigna automáticamente.'
   };
   return m[clave] || '';
@@ -1692,6 +1837,7 @@ function preguntarComision(estado, alResponder, alCancelar) {
   var campo = document.getElementById('f-comision');
   var inp = document.getElementById('com-valor');
   inp.value = campo ? dineroVista(campo.value) : '';
+  document.getElementById('com-fecha').value = hoyISO();
   document.getElementById('com-texto').textContent =
     'Marcaste este inmueble como ' + estado + '. Anota cuánto fue la comisión (para tu declaración de renta).';
   document.getElementById('capa-comision').hidden = false;
@@ -1703,6 +1849,8 @@ function responderComision(sinComision) {
   var d = sinComision ? '0' : (soloDigitos(document.getElementById('com-valor').value) || '0');
   var campo = document.getElementById('f-comision');
   if (campo) campo.value = conMiles(d);
+  var cf = document.getElementById('f-fechaVenta');
+  if (cf) cf.value = fechaVista(document.getElementById('com-fecha').value || hoyISO());
   S.edicion.comisionRespondida = cb.estado;
   cerrarComision();
   _mostrarComision(); marcarCambios();
@@ -2470,14 +2618,16 @@ function _pintarHubLeads() {
   cont.querySelectorAll('.hub-card').forEach(function(b){ b.onclick = function(){ abrirTipoLead(b.dataset.v); }; });
 }
 
-function abrirTipoLead(t) {
-  S.tipoLead = t; S.filtroLead = 'Todos'; S.filtroTemp = '';
+function abrirTipoLead(t, sinHistorial) {
+  if (!sinHistorial && !navDeshacer) { navIr({ pest: 'leads', tipo: t }, function () { abrirTipoLead(t, true); }); return; }
+  S.tipoLead = t; S.filtroLead = 'Nuevo'; S.filtroTemp = '';
   document.getElementById('buscar-leads').value = '';
   pintarChipsLeads(); pintarLeads();
   window.scrollTo(0, 0);
 }
-function volverHubLeads() {
-  S.tipoLead = ''; S.filtroLead = 'Todos'; S.filtroTemp = '';
+function volverHubLeads(sinHistorial) {
+  if (!sinHistorial && !navDeshacer) { navIr({ pest: 'leads', tipo: '' }, function () { volverHubLeads(true); }); return; }
+  S.tipoLead = ''; S.filtroLead = 'Nuevo'; S.filtroTemp = '';
   pintarChipsLeads();
   window.scrollTo(0, 0);
 }
@@ -2497,8 +2647,8 @@ function pintarChipsLeads() {
   etapas.forEach(function(e){ cuenta[e] = 0; });
   filas.forEach(function(f){ if(f.pipeline in cuenta) cuenta[f.pipeline]++; });
   var cont = document.getElementById('chips-leads');
-  cont.innerHTML = ['Todos'].concat(etapas).map(function(et){
-    return '<button class="chip" aria-pressed="'+(S.filtroLead===et)+'" data-v="'+esc(et)+'">'+esc(et)+' · '+(cuenta[et]||0)+'</button>';
+  cont.innerHTML = etapas.concat(['Todos']).map(function(et){
+    return '<button class="chip '+_claseChipEtapa(et)+'" aria-pressed="'+(S.filtroLead===et)+'" data-v="'+esc(et)+'">'+esc(et)+' · '+(cuenta[et]||0)+'</button>';
   }).join('');
   cont.querySelectorAll('.chip').forEach(function(b){
     b.onclick = function(){ S.filtroLead=b.dataset.v; pintarChipsLeads(); pintarLeads(); };
@@ -2525,7 +2675,7 @@ function pintarLeads() {
   var filas = r.filas.filter(function(f){
     if (F.etapasLeads) {
       if (tipoDe(f)!==S.tipoLead) return false;
-      if (S.filtroLead!=='Todos' && f.pipeline!==S.filtroLead) return false;
+      if (S.filtroLead!=='Todos' && (f.pipeline||'Nuevo')!==S.filtroLead) return false;
       if (S.filtroTemp) { var t=temperatura(f); if(!t||t.nivel!==S.filtroTemp) return false; }
     }
     var campos = [f.nombre,f.whatsapp,f.inmueble,f.zona,f.origen,f.tipo];
@@ -2538,6 +2688,14 @@ function pintarLeads() {
   if (F.etapasLeads) cont.querySelectorAll('.lead').forEach(wireLead);
 }
 
+/** Color del chip por importancia: atención (naranja), bueno (verde), sin importancia (gris). */
+function _claseChipEtapa(et) {
+  var n = norm(et);
+  if (n === 'nuevo' || n === 'contactado' || n === 'visita agendada') return 'ch-aten';
+  if (n === 'calificado') return 'ch-ok';
+  if (n === 'negocio cerrado' || n === 'no calificado') return 'ch-gris';
+  return '';
+}
 function claseEtapa(e) { return 'e-'+String(e||'').split(' ')[0].normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
 
 /** Líneas de datos del lead según su embudo (Propietario: precio esperado y qué quiere; Inquilino: canon). */
@@ -2690,7 +2848,7 @@ function guardarNuevoLead(forzar) {
     }
     if (!r.ok) throw new Error(r.error||'Error');
     cerrarLead();
-    if (S.tipoLead) { S.tipoLead = tipo; S.filtroLead = 'Todos'; S.filtroTemp = ''; }   // en el inicio se queda en el inicio
+    if (S.tipoLead) { S.tipoLead = tipo; S.filtroLead = 'Nuevo'; S.filtroTemp = ''; }   // en el inicio se queda en el inicio
     toast('Lead guardado en '+LEAD_TIPO_PLURAL[tipo]+'.');
     return cargarLeads();
   }).catch(function(e){
@@ -2936,6 +3094,7 @@ function cargarReqSilencioso() {
    INICIO DEL PANEL
    ============================================================ */
 function iniciarPanel() {
+  navIniciar();
   cargarInmuebles().then(function(){
     setTimeout(function(){
       if (!S.leads && !S.cargando.leads) cargarLeads();
