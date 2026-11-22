@@ -194,10 +194,19 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .e-Visita { background: #86efac; } .e-Negocio { background: #22c55e; color:#fff; } .e-No { background: #fecaca; }
 .e-Negociacion { background: #d9f99d; } .e-Precio { background: #bae6fd; } .e-Captado { background: #86efac; }
 .e-Publicado { background: #22c55e; color:#fff; } .e-Estudio { background: #ddd6fe; } .e-Contrato { background: #22c55e; color:#fff; }
-.tabs-tipo { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; }
-.tabs-tipo button { flex: 1 1 0; min-width: 104px; border: 1px solid var(--linea); background: var(--papel); border-radius: 10px; padding: 9px 8px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--suave); cursor: pointer; }
-.tabs-tipo button[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: #fff; }
-.tabs-tipo .n { font-weight: 500; opacity: .85; margin-left: 4px; }
+.hub-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 14px; }
+.hub-card { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit; cursor: pointer;
+  background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 16px 18px; transition: border-color var(--trans); }
+.hub-card:hover, .hub-card:active { border-color: var(--acento); }
+.hub-card .hub-txt { flex: 1; min-width: 0; }
+.hub-card .hub-tit { font-size: 17px; font-weight: 700; color: var(--tinta); }
+.hub-card .hub-des { font-size: 13px; color: var(--tenue); margin-top: 2px; }
+.hub-card .hub-aten { font-size: 12.5px; font-weight: 600; color: #b45309; margin-top: 6px; }
+.hub-card .hub-n { font-size: 30px; font-weight: 700; color: var(--acento); line-height: 1; }
+.hub-card .hub-flecha { color: var(--tenue); font-size: 20px; }
+.cab-tipo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cab-tipo h2 { font-size: 18px; margin: 0; }
+.cab-tipo .btn { padding: 7px 12px; font-size: 13px; }
 .etq-tipo { display: inline-block; font-size: 11px; font-weight: 600; background: var(--acento2); color: var(--acento); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
 .estado-meta { font-size: 12px; color: var(--tenue); margin-top: 6px; }
 .estado-meta.error { color: var(--alerta); }
@@ -381,15 +390,28 @@ main, .lista > * { min-width: 0; max-width: 100%; }
   <!-- Leads -->
   <section id="sec-leads" hidden>
     <div class="aviso-plan" id="aviso-leads" hidden></div>
-    <div class="herramientas">
-      <input class="buscar" id="buscar-leads" type="search" placeholder="Buscar nombre, WhatsApp, inmueble, zona…" oninput="pintarLeads()">
-      <button class="btn" onclick="cargarLeads()">Actualizar</button>
+
+    <!-- Inicio de Leads (planes con embudos): solo los 3 tipos -->
+    <div id="lead-hub" hidden>
+      <div class="hub-grid" id="hub-cards"></div>
       <button class="btn btn-primario" onclick="abrirLead()">+ Lead</button>
     </div>
-    <div class="tabs-tipo" id="tabs-lead" hidden></div>
-    <div class="temp-resumen" id="temp-resumen"></div>
-    <div class="chips" id="chips-leads"></div>
-    <div class="lista" id="lista-leads"><p class="cargando">Cargando leads…</p></div>
+
+    <!-- Vista de un tipo (o lista simple en el plan Catálogo) -->
+    <div id="lead-vista">
+      <div class="cab-tipo" id="cab-tipo" hidden>
+        <button class="btn" onclick="volverHubLeads()">← Leads</button>
+        <h2 id="cab-tipo-titulo"></h2>
+      </div>
+      <div class="herramientas">
+        <input class="buscar" id="buscar-leads" type="search" placeholder="Buscar nombre, WhatsApp, inmueble, zona…" oninput="pintarLeads()">
+        <button class="btn" onclick="cargarLeads()">Actualizar</button>
+        <button class="btn btn-primario" onclick="abrirLead()">+ Lead</button>
+      </div>
+      <div class="temp-resumen" id="temp-resumen"></div>
+      <div class="chips" id="chips-leads"></div>
+      <div class="lista" id="lista-leads"><p class="cargando">Cargando leads…</p></div>
+    </div>
   </section>
 
   <!-- Requerimientos -->
@@ -711,7 +733,7 @@ var S = {
   edReq:      null,
   filtroInm:  'Disponible',   // por defecto solo Disponibles; '*' = Todos
   filtroLead: 'Todos',
-  tipoLead:   'Comprador',    // pestaña de embudo abierta
+  tipoLead:   '',             // embudo abierto ('' = pantalla de inicio con los 3 tipos)
   filtroTemp: '',
   filtroReq:  'Activas',
   cargando:   { leads: false, req: false }
@@ -2101,6 +2123,7 @@ function llenarDesdeUrl() {
    LEADS
    ============================================================ */
 function cargarLeads() {
+  if (!S.leads) pintarChipsLeads();   // muestra el inicio (con "…") mientras llegan los datos
   document.getElementById('lista-leads').innerHTML = '<p class="cargando">Cargando leads…</p>';
   S.cargando.leads = true;
   return api({ accion: 'leerLeads' }).then(function(r){
@@ -2195,26 +2218,53 @@ function _leadsDelTipo() {
   return F.etapasLeads ? filas.filter(function(f){ return tipoDe(f)===S.tipoLead; }) : filas;
 }
 
-function _pintarTabsLead() {
-  var cont = document.getElementById('tabs-lead');
-  if (!F.etapasLeads) { cont.hidden = true; return; }
-  var cuenta = {};
-  LEAD_TIPOS.forEach(function(t){ cuenta[t]=0; });
-  ((S.leads&&S.leads.filas)||[]).forEach(function(f){ cuenta[tipoDe(f)]++; });
-  cont.hidden = false;
-  cont.innerHTML = LEAD_TIPOS.map(function(t){
-    return '<button type="button" aria-pressed="'+(S.tipoLead===t)+'" data-v="'+t+'">'+LEAD_TIPO_PLURAL[t]+'<span class="n">'+cuenta[t]+'</span></button>';
-  }).join('');
-  cont.querySelectorAll('button').forEach(function(b){
-    b.onclick = function(){
-      S.tipoLead = b.dataset.v; S.filtroLead = 'Todos'; S.filtroTemp = '';
-      _pintarTabsLead(); pintarChipsLeads(); pintarLeads();
-    };
+var LEAD_TIPO_DESC = { Comprador:'Buscan comprar', Propietario:'Quieren vender o arrendar', Inquilino:'Buscan arrendar' };
+
+/** Muestra la pantalla de inicio (3 tipos) o la vista de un tipo. */
+function _aplicarVistaLeads() {
+  var emb = !!F.etapasLeads, hub = emb && !S.tipoLead;
+  document.getElementById('lead-hub').hidden = !hub;
+  document.getElementById('lead-vista').hidden = hub;
+  document.getElementById('cab-tipo').hidden = !(emb && S.tipoLead);
+  if (emb && S.tipoLead) {
+    document.getElementById('cab-tipo-titulo').textContent = LEAD_TIPO_PLURAL[S.tipoLead] + ' · ' + _leadsDelTipo().length;
+  }
+}
+
+function _pintarHubLeads() {
+  var filas = (S.leads && S.leads.filas) || [], cargado = !!S.leads;
+  var cuenta = {}, aten = {};
+  LEAD_TIPOS.forEach(function(t){ cuenta[t]=0; aten[t]=0; });
+  filas.forEach(function(f){
+    var t = tipoDe(f); cuenta[t]++;
+    if (['Nuevo','Contactado'].indexOf(f.pipeline)!==-1) aten[t]++;
   });
+  var cont = document.getElementById('hub-cards');
+  cont.innerHTML = LEAD_TIPOS.map(function(t){
+    return '<button type="button" class="hub-card" data-v="'+t+'">'+
+      '<div class="hub-txt"><div class="hub-tit">'+LEAD_TIPO_PLURAL[t]+'</div>'+
+      '<div class="hub-des">'+LEAD_TIPO_DESC[t]+'</div>'+
+      (aten[t]?'<div class="hub-aten">'+aten[t]+' por atender'+'</div>':'')+'</div>'+
+      '<div class="hub-n">'+(cargado?cuenta[t]:'…')+'</div><span class="hub-flecha">›</span></button>';
+  }).join('');
+  cont.querySelectorAll('.hub-card').forEach(function(b){ b.onclick = function(){ abrirTipoLead(b.dataset.v); }; });
+}
+
+function abrirTipoLead(t) {
+  S.tipoLead = t; S.filtroLead = 'Todos'; S.filtroTemp = '';
+  document.getElementById('buscar-leads').value = '';
+  pintarChipsLeads(); pintarLeads();
+  window.scrollTo(0, 0);
+}
+function volverHubLeads() {
+  S.tipoLead = ''; S.filtroLead = 'Todos'; S.filtroTemp = '';
+  pintarChipsLeads();
+  window.scrollTo(0, 0);
 }
 
 function pintarChipsLeads() {
-  _pintarTabsLead();
+  _aplicarVistaLeads();
+  if (F.etapasLeads && !S.tipoLead) { _pintarHubLeads(); return; }   // inicio: solo los 3 tipos
   // Plan Catálogo: lista simple, sin resumen de temperatura ni filtros por etapa
   if (!F.etapasLeads) {
     document.getElementById('temp-resumen').innerHTML = '';
@@ -2250,6 +2300,7 @@ function _pintarResumenTemp() {
 
 function pintarLeads() {
   var r = S.leads; if (!r) return;
+  if (F.etapasLeads && !S.tipoLead) return;   // inicio: la lista se ve al elegir un tipo
   var q = norm(document.getElementById('buscar-leads').value);
   var filas = r.filas.filter(function(f){
     if (F.etapasLeads) {
@@ -2358,7 +2409,7 @@ function guardarLead(art) {
 /* ---- Nuevo lead a mano ---- */
 var _nl = null;   // { tipo, operacion, guardando }
 function abrirLead() {
-  _nl = { tipo: F.etapasLeads ? S.tipoLead : 'Comprador', operacion: 'Vender', guardando: false };
+  _nl = { tipo: (F.etapasLeads && S.tipoLead) || 'Comprador', operacion: 'Vender', guardando: false };
   ['nombre','wa','inmueble','presupuesto','zona','nota'].forEach(function(k){ document.getElementById('nl-'+k).value = ''; });
   document.getElementById('nl-origen').innerHTML = LEAD_ORIGENES.map(function(o){ return '<option>'+esc(o)+'</option>'; }).join('');
   document.getElementById('nl-msg').textContent = '';
@@ -2419,8 +2470,8 @@ function guardarNuevoLead(forzar) {
     }
     if (!r.ok) throw new Error(r.error||'Error');
     cerrarLead();
-    S.tipoLead = tipo; S.filtroLead = 'Todos'; S.filtroTemp = '';
-    toast('Lead guardado.');
+    if (S.tipoLead) { S.tipoLead = tipo; S.filtroLead = 'Todos'; S.filtroTemp = ''; }   // en el inicio se queda en el inicio
+    toast('Lead guardado en '+LEAD_TIPO_PLURAL[tipo]+'.');
     return cargarLeads();
   }).catch(function(e){
     if (_nl) { msg.textContent = e.message; _nl.guardando = false; }
