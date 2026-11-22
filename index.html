@@ -102,7 +102,8 @@ main { max-width: 1000px; margin: 0 auto; padding: 16px; }
 .chip { border: 1px solid var(--linea); background: var(--papel); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-size: 13px; color: var(--suave); }
 .chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 .lista { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior-y: none; }
+html, body { overflow-x: hidden; max-width: 100%; }
+html { overscroll-behavior-y: none; }
 main, .lista > * { min-width: 0; max-width: 100%; }
 .vacio, .cargando { text-align: center; color: var(--tenue); padding: 40px 10px; }
 
