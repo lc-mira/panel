@@ -744,6 +744,7 @@ main, .lista > * { min-width: 0; max-width: 100%; }
      ============================================================ -->
 <div class="capa capa-img" id="capa-img" hidden>
   <div class="img-vista" role="dialog" aria-modal="true" aria-label="Imagen para estados">
+    <div class="fila-chips" id="img-disenos" aria-label="Diseño de la imagen" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px"></div>
     <img id="img-prev" alt="Vista previa de la imagen">
     <p class="nota">Al compartir, la imagen va con el texto y este enlace a tu catálogo:<br><b id="img-link" style="word-break:break-all"></b><br>Si solo la guardas, usa «Copiar texto» para pegarlo junto a la imagen.</p>
     <div class="botones">
@@ -1569,10 +1570,11 @@ function generarImagenEstados(fila, boton) {
   var cols = FichaVista.colores('#0f5b4f');
   var dominio = 'miraleads.pro';
   try { dominio = new URL(CFG.catalogoUrl).host; } catch (e) {}
-  FichaImagen.generar(FichaVista.construirVista(f), {
-    fotoUrls: fotoUrls, colores: cols, dominio: dominio, iconoSvg: FichaVista.iconoSvg
-  }).then(function(blob){
-    _mostrarImagen(blob, f, link);
+  // La foto se carga una sola vez; cambiar de diseño solo vuelve a dibujar.
+  FichaImagen.cargarFoto(fotoUrls).then(function(foto){
+    _imgCtx = { f: f, link: link, vista: FichaVista.construirVista(f),
+                opts: { foto: foto, colores: cols, dominio: dominio, iconoSvg: FichaVista.iconoSvg } };
+    return _dibujarImagen(_disenoImagen());
   }).catch(function(e){
     console.error('[panel] imagen:', e);
     toast('No se pudo crear la imagen. Intenta de nuevo.', 6000);
@@ -1580,7 +1582,41 @@ function generarImagenEstados(fila, boton) {
 }
 
 var _img = null;  // { url, archivo, texto }
-function _mostrarImagen(blob, f, link) {
+var _imgCtx = null;   // datos para volver a dibujar con otro diseño
+function _disenoImagen() {
+  var d = '';
+  try { d = localStorage.getItem('lc_diseno_img') || ''; } catch (e) {}
+  return FichaImagen.DISENOS.some(function(x){ return x.id === d; }) ? d : 'clasico';
+}
+function _dibujarImagen(diseno) {
+  var ctx = _imgCtx; if (!ctx) return Promise.resolve();
+  return FichaImagen.generar(ctx.vista, Object.assign({ diseno: diseno }, ctx.opts)).then(function(blob){
+    if (_imgCtx !== ctx) return;      // se cerró el visor mientras se dibujaba
+    _mostrarImagen(blob, ctx.f, ctx.link, diseno);
+  });
+}
+function elegirDisenoImagen(d) {
+  if (!_imgCtx || d === _disenoImagenActual) return;
+  try { localStorage.setItem('lc_diseno_img', d); } catch (e) {}
+  var prev = document.getElementById('img-prev'); prev.style.opacity = '.4';
+  document.querySelectorAll('#img-disenos button').forEach(function(b){ b.disabled = true; });
+  _dibujarImagen(d).catch(function(e){
+    console.error('[panel] imagen:', e); toast('No se pudo cambiar el diseño.', 5000);
+  }).then(function(){
+    prev.style.opacity = '';
+    document.querySelectorAll('#img-disenos button').forEach(function(b){ b.disabled = false; });
+  });
+}
+var _disenoImagenActual = '';
+function _pintarDisenosImagen(actual) {
+  _disenoImagenActual = actual;
+  document.getElementById('img-disenos').innerHTML = FichaImagen.DISENOS.map(function(x){
+    return '<button type="button" class="chip" aria-pressed="'+(x.id===actual)+'" onclick="elegirDisenoImagen(\''+x.id+'\')">'+esc(x.nombre)+'</button>';
+  }).join('');
+}
+function _mostrarImagen(blob, f, link, diseno) {
+  if (_img) URL.revokeObjectURL(_img.url);
+  var yaAbierto = !document.getElementById('capa-img').hidden;
   var nombre = 'ficha-' + String(f.id || 'inmueble').toLowerCase().replace(/[^a-z0-9_-]/g, '') + '.png';
   var archivo = new File([blob], nombre, { type: 'image/png' });
   var url = URL.createObjectURL(blob);
@@ -1588,6 +1624,8 @@ function _mostrarImagen(blob, f, link) {
   document.getElementById('img-prev').src = url;
   document.getElementById('img-link').textContent = link;
   document.getElementById('img-compartir').hidden = !(navigator.canShare && navigator.canShare({ files: [archivo] }));
+  _pintarDisenosImagen(diseno);
+  if (yaAbierto) return;
   document.getElementById('capa-img').hidden = false;
   document.body.style.overflow = 'hidden';
   histAbrir();
@@ -1596,6 +1634,7 @@ function cerrarImagen(desdeHistorial) {
   document.getElementById('capa-img').hidden = true;
   document.body.style.overflow = '';
   if (_img) { URL.revokeObjectURL(_img.url); _img = null; }
+  _imgCtx = null;
   if (!desdeHistorial) histCerrar();
 }
 function imagenCompartir() {

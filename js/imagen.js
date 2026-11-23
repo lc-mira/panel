@@ -157,7 +157,7 @@ window.FichaImagen = (function () {
    * @param {Object} o  { fotoUrls (lista en orden de preferencia) o fotoUrl, colores:{acento,oscuro,claro,suave}, dominio, iconoSvg(nombre,color) }
    * @returns {Promise<Blob>} PNG
    * ============================================================= */
-  async function generar(v, o) {
+  async function generarClasico(v, o) {
     const c = o.colores;
 
     // Tipografía: esperar a que Poppins esté lista (si no, se usa la del sistema).
@@ -165,7 +165,7 @@ window.FichaImagen = (function () {
       await Promise.all([400, 500, 600, 700].map(p => document.fonts.load(p + ' 32px Poppins')));
     } catch (e) { /* sigue con la fuente de respaldo */ }
 
-    const foto = await cargarFoto(o.fotoUrls || o.fotoUrl);
+    const foto = ('foto' in o) ? o.foto : await cargarFoto(o.fotoUrls || o.fotoUrl);
 
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
@@ -363,5 +363,291 @@ window.FichaImagen = (function () {
     });
   }
 
-  return { generar };
+  /* =============================================================
+   * DISEÑOS ADICIONALES
+   *  - 'clasico'  : el original (foto arriba, tarjetas blancas)
+   *  - 'foto'     : foto a pantalla completa con la información sobre un degradado oscuro
+   *  - 'marca'    : fondo del color de marca, foto en arco y precio en una píldora blanca
+   * Todos usan los mismos datos públicos (vista) y el mismo pie de marca.
+   * ============================================================= */
+
+  async function preparar(v, o) {
+    try { await Promise.all([400, 500, 600, 700].map(p => document.fonts.load(p + ' 32px Poppins'))); } catch (e) { /* respaldo */ }
+    const foto = ('foto' in o) ? o.foto : await cargarFoto(o.fotoUrls || o.fotoUrl);
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    return { c: o.colores, foto, canvas, ctx: canvas.getContext('2d') };
+  }
+
+  function aBlob(canvas) {
+    return new Promise((ok, mal) => canvas.toBlob(b => b ? ok(b) : mal(new Error('No se pudo crear la imagen')), 'image/png'));
+  }
+
+  /** Reparte las píldoras en filas (máx. 2) como el diseño clásico. */
+  function armarPildoras(ctx, v, maxW, size, padX, altura, gap) {
+    const textos = v.tarjetas.slice(3).map(t => t.pildora)
+      .concat(v.detalles.filter(d => !d.com).map(d => d.texto))
+      .concat(v.detalles.filter(d => d.com).slice(0, 4).map(d => d.texto)).filter(Boolean);
+    const lista = []; let usado = 0, fila = 0;
+    textos.forEach(t => {
+      const w = medir(ctx, t, size, 500, 0) + padX * 2;
+      if (usado && usado + gap + w > maxW) { fila++; usado = 0; }
+      if (fila > 1) return;
+      lista.push({ t, w, fila, x: usado ? usado + gap : 0 });
+      usado = (usado ? usado + gap : 0) + w;
+    });
+    const filas = lista.length ? lista[lista.length - 1].fila + 1 : 0;
+    return { lista, filas, alto: filas ? filas * altura + (filas - 1) * 12 : 0, altura };
+  }
+
+  function etiquetaNoDisponible(ctx, v, y) {
+    if (!v.noDisponible) return;
+    const t = v.noDisponible, w = medir(ctx, t, 30, 600, 1) + 56;
+    ctx.fillStyle = '#b4232a'; ruta(ctx, M, y, w, 58, 29); ctx.fill();
+    texto(ctx, t, M + 28, y + 40, { size: 30, peso: 600, color: '#fff', tracking: 1 });
+  }
+
+  async function ubicacionConPin(ctx, o, ub, cx, y, colorPin, colorTexto, size) {
+    const t = ub.length > 44 ? ub.slice(0, 43) + '…' : ub;
+    const ancho = medir(ctx, t, size, 400, 0);
+    const x0 = cx - (ancho + 44) / 2;
+    try { const pin = await cargarIcono(o.iconoSvg('pin', colorPin)); ctx.drawImage(pin, x0, y - 29, 34, 34); } catch (e) { /* sin ícono */ }
+    texto(ctx, t, x0 + 44, y, { size, color: colorTexto });
+  }
+
+  /** Precios en columnas. Devuelve la altura usada. */
+  function dibujarPrecios(ctx, v, x, y, w, colorEtq, colorVal, alturaFija) {
+    const n = v.precios.length;
+    v.precios.forEach((p, i) => {
+      const colW = w / n, cx = x + colW * i + colW / 2;
+      ctx.globalAlpha = .85;
+      texto(ctx, p.etiqueta.toUpperCase(), cx, y + 30, { size: 24, peso: 500, color: colorEtq, align: 'center', tracking: 3.4 });
+      ctx.globalAlpha = 1;
+      let size = n > 1 ? 58 : 88;
+      while (size > 34 && medir(ctx, p.valor, size, 700, -1) + (p.sufijo ? 90 : 0) > colW - 40) size -= 2;
+      const vw = medir(ctx, p.valor, size, 700, -1), sw = p.sufijo ? medir(ctx, p.sufijo, Math.max(26, size * .38), 500, 0) + 8 : 0;
+      const x0 = cx - (vw + sw) / 2, yb = y + 30 + 20 + size * .86;
+      texto(ctx, p.valor, x0, yb, { size, peso: 700, color: colorVal, tracking: -1 });
+      if (p.sufijo) texto(ctx, p.sufijo, x0 + vw + 8, yb, { size: Math.max(26, size * .38), peso: 500, color: colorVal });
+    });
+    return alturaFija;
+  }
+
+  function pieMarca(ctx, c, y, colorTexto, colorOjo) {
+    const t1 = 'Ficha creada con ', t2 = 'Mira Leads';
+    const w1 = medir(ctx, t1, 22, 400, 0), w2 = medir(ctx, t2, 22, 600, 0);
+    let x = (W - (30 + w1 + w2)) / 2;
+    dibujarOjo(ctx, { acento: colorOjo }, x + 10, y - 8, 10);
+    x += 30;
+    texto(ctx, t1, x, y, { size: 22, peso: 400, color: colorTexto });
+    texto(ctx, t2, x + w1, y, { size: 22, peso: 600, color: colorTexto });
+  }
+
+  /* ---------- Diseño "foto": pantalla completa ---------- */
+  async function generarFoto(v, o) {
+    const { c, foto, canvas, ctx } = await preparar(v, o);
+    const cardW = W - M * 2;
+
+    // Fondo: la foto a sangre (o un degradado de marca si no hay foto).
+    if (foto) cubrir(ctx, foto, 0, 0, W, H);
+    else {
+      ctx.fillStyle = rellenoAcento(ctx, c, 0, 0, W, H); ctx.fillRect(0, 0, W, H);
+      texto(ctx, 'Sin foto', W / 2, 700, { size: 40, color: 'rgba(255,255,255,.6)', align: 'center' });
+    }
+    const velo = ctx.createLinearGradient(0, 0, 0, 280);
+    velo.addColorStop(0, 'rgba(8,12,16,.45)'); velo.addColorStop(1, 'rgba(8,12,16,0)');
+    ctx.fillStyle = velo; ctx.fillRect(0, 0, W, 280);
+    const sombra = ctx.createLinearGradient(0, 640, 0, H);
+    sombra.addColorStop(0, 'rgba(8,12,16,0)'); sombra.addColorStop(.45, 'rgba(8,12,16,.74)'); sombra.addColorStop(1, 'rgba(8,12,16,.94)');
+    ctx.fillStyle = sombra; ctx.fillRect(0, 640, W, H - 640);
+    etiquetaNoDisponible(ctx, v, 290);
+
+    // Medidas (de abajo hacia arriba).
+    let tSize = 72, tLineas = [];
+    for (const s of [72, 64, 56, 48]) { tSize = s; tLineas = envolver(ctx, v.titulo || 'Inmueble', s, 700, -.5, cardW); if (tLineas.length <= 2) break; }
+    const tLinea = Math.round(tSize * 1.2);
+    const pild = armarPildoras(ctx, v, cardW, 28, 28, 64, 14);
+    const tarjetas = v.tarjetas.slice(0, 3);
+    const statsH = tarjetas.length ? 170 : 0;
+    const precioH = 170;
+    const infoH = tLineas.length * tLinea + (v.proyecto ? 54 : 0) + (v.ubicacion ? 56 : 0);
+    const total = infoH + 34 + precioH + (statsH ? 30 + statsH : 0) + (pild.alto ? 30 + pild.alto : 0);
+    let y = 1790 - total;
+
+    // Título, proyecto y ubicación.
+    tLineas.forEach((l, i) => texto(ctx, l, M, y + tSize * .9 + i * tLinea, { size: tSize, peso: 700, color: '#fff', tracking: -.5 }));
+    y += tLineas.length * tLinea;
+    if (v.proyecto) {
+      const pr = v.proyecto.length > 40 ? v.proyecto.slice(0, 39) + '…' : v.proyecto;
+      texto(ctx, pr, M, y + 36, { size: 36, peso: 600, color: 'rgba(255,255,255,.92)' }); y += 54;
+    }
+    if (v.ubicacion) {
+      const ub = v.ubicacion.length > 44 ? v.ubicacion.slice(0, 43) + '…' : v.ubicacion;
+      try { const pin = await cargarIcono(o.iconoSvg('pin', '#ffffff')); ctx.drawImage(pin, M, y + 8, 34, 34); } catch (e) { /* sin ícono */ }
+      texto(ctx, ub, M + 44, y + 36, { size: 32, color: 'rgba(255,255,255,.85)' }); y += 56;
+    }
+    y += 34;
+
+    // Precio: línea de marca y valores grandes.
+    ctx.fillStyle = rellenoAcento(ctx, c, M, y, 200, 6); ruta(ctx, M, y, 200, 6, 3); ctx.fill();
+    ctx.save(); ctx.translate(0, 18);
+    v.precios.forEach((p, i) => {
+      const n = v.precios.length, colW = cardW / n, x0 = M + colW * i;
+      ctx.globalAlpha = .8;
+      texto(ctx, p.etiqueta.toUpperCase(), x0, y + 26, { size: 24, peso: 500, color: '#fff', tracking: 3.4 });
+      ctx.globalAlpha = 1;
+      let size = n > 1 ? 62 : 100;
+      while (size > 34 && medir(ctx, p.valor, size, 700, -1) + (p.sufijo ? 90 : 0) > colW - 24) size -= 2;
+      const yb = y + 26 + 18 + size * .86;
+      texto(ctx, p.valor, x0, yb, { size, peso: 700, color: '#fff', tracking: -1 });
+      if (p.sufijo) texto(ctx, p.sufijo, x0 + medir(ctx, p.valor, size, 700, -1) + 8, yb, { size: Math.max(26, size * .38), peso: 500, color: '#fff' });
+    });
+    ctx.restore();
+    y += precioH;
+
+    // Datos en una banda de vidrio.
+    if (statsH) {
+      y += 30;
+      ctx.fillStyle = 'rgba(255,255,255,.14)'; ruta(ctx, M, y, cardW, statsH, 40); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 2; ruta(ctx, M, y, cardW, statsH, 40); ctx.stroke();
+      const n = tarjetas.length, colW = cardW / n;
+      for (let i = 0; i < n; i++) {
+        const t = tarjetas[i], cx = M + colW * i + colW / 2;
+        if (i > 0) { ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(M + colW * i, y + 30, 2, statsH - 60); }
+        try { const ic = await cargarIcono(o.iconoSvg(t.icono, '#ffffff')); ctx.drawImage(ic, cx - 17, y + 22, 34, 34); } catch (e) { /* sin ícono */ }
+        let size = 54;
+        const unidad = t.unidad ? ' ' + t.unidad : '';
+        while (size > 28 && medir(ctx, t.valor + unidad, size, 700, -1) > colW - 30) size -= 2;
+        texto(ctx, t.valor + unidad, cx, y + 70 + size * .78, { size, peso: 700, color: '#fff', align: 'center', tracking: -1 });
+        texto(ctx, t.etiqueta, cx, y + statsH - 24, { size: 24, color: 'rgba(255,255,255,.8)', align: 'center' });
+      }
+      y += statsH;
+    }
+
+    // Píldoras translúcidas.
+    if (pild.alto) {
+      y += 30;
+      pild.lista.forEach(p => {
+        const px = M + p.x, py = y + p.fila * (pild.altura + 12);
+        ctx.fillStyle = 'rgba(255,255,255,.18)'; ruta(ctx, px, py, p.w, pild.altura, pild.altura / 2); ctx.fill();
+        texto(ctx, p.t, px + p.w / 2, py + 42, { size: 28, peso: 500, color: '#fff', align: 'center' });
+      });
+    }
+    pieMarca(ctx, c, 1856, 'rgba(255,255,255,.7)', '#ffffff');
+    return aBlob(canvas);
+  }
+
+  /* ---------- Diseño "marca": color de marca, foto en arco, precio en píldora blanca ---------- */
+  async function generarMarca(v, o) {
+    const { c, foto, canvas, ctx } = await preparar(v, o);
+    const cardW = W - M * 2;
+
+    const fondo = ctx.createLinearGradient(0, 0, W * .35, H);
+    fondo.addColorStop(0, c.acento); fondo.addColorStop(1, c.oscuro);
+    ctx.fillStyle = fondo; ctx.fillRect(0, 0, W, H);
+    [[W - 60, 220, 460], [60, 1500, 520]].forEach(([x, y, r]) => {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(255,255,255,.14)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    });
+
+    // Medidas: la foto en arco absorbe el espacio sobrante.
+    let tSize = 62, tLineas = [];
+    for (const s of [62, 56, 50, 44]) { tSize = s; tLineas = envolver(ctx, v.titulo || 'Inmueble', s, 700, -.3, cardW - 40); if (tLineas.length <= 2) break; }
+    const tLinea = Math.round(tSize * 1.22);
+    const pild = armarPildoras(ctx, v, cardW, 27, 26, 60, 14);
+    const tarjetas = v.tarjetas.slice(0, 3);
+    const statsH = tarjetas.length ? 150 : 0;
+    const precioH = 168;
+    const tituloH = tLineas.length * tLinea + (v.proyecto ? 52 : 0) + (v.ubicacion ? 56 : 0);
+    const apilado = 34 + tituloH + 30 + precioH + (statsH ? 30 + statsH : 0) + (pild.alto ? 28 + pild.alto : 0);
+    const TOP = 190, FIN = 1790;
+    const archH = Math.max(520, Math.min(900, FIN - TOP - apilado));
+    const archW = 880, archX = (W - archW) / 2;
+
+    // Marco blanco + foto en arco.
+    ctx.save();
+    conSombra(ctx, 'rgba(0,0,0,.30)', 50, 20, () => {
+      ctx.fillStyle = '#fff'; ruta(ctx, archX - 12, TOP - 12, archW + 24, archH + 24, [archW / 2 + 12, archW / 2 + 12, 52, 52]); ctx.fill();
+    });
+    ruta(ctx, archX, TOP, archW, archH, [archW / 2, archW / 2, 42, 42]); ctx.clip();
+    if (foto) cubrir(ctx, foto, archX, TOP, archW, archH);
+    else { ctx.fillStyle = '#d6dce3'; ctx.fillRect(archX, TOP, archW, archH); texto(ctx, 'Sin foto', W / 2, TOP + archH / 2, { size: 40, color: '#98a1ae', align: 'center' }); }
+    ctx.restore();
+    etiquetaNoDisponible(ctx, v, 70);
+
+    let y = TOP + archH + 34;
+    tLineas.forEach((l, i) => texto(ctx, l, W / 2, y + tSize * .9 + i * tLinea, { size: tSize, peso: 700, color: '#fff', align: 'center', tracking: -.3 }));
+    y += tLineas.length * tLinea;
+    if (v.proyecto) {
+      const pr = v.proyecto.length > 40 ? v.proyecto.slice(0, 39) + '…' : v.proyecto;
+      texto(ctx, pr, W / 2, y + 34, { size: 34, peso: 600, color: 'rgba(255,255,255,.92)', align: 'center' }); y += 52;
+    }
+    if (v.ubicacion) { await ubicacionConPin(ctx, o, v.ubicacion, W / 2, y + 34, '#ffffff', 'rgba(255,255,255,.85)', 32); y += 56; }
+    y += 30;
+
+    // Precio en píldora blanca.
+    conSombra(ctx, 'rgba(0,0,0,.25)', 40, 14, () => { ctx.fillStyle = '#fff'; ruta(ctx, M, y, cardW, precioH, precioH / 2); ctx.fill(); });
+    if (v.precios.length > 1) { ctx.fillStyle = '#e3e8ee'; ctx.fillRect(W / 2 - 1, y + 36, 2, precioH - 72); }
+    ctx.save(); ctx.translate(0, 16);
+    const n0 = v.precios.length;
+    v.precios.forEach((p, i) => {
+      const colW = cardW / n0, cx = M + colW * i + colW / 2;
+      texto(ctx, p.etiqueta.toUpperCase(), cx, y + 36, { size: 22, peso: 500, color: '#7a8493', align: 'center', tracking: 3 });
+      let size = n0 > 1 ? 56 : 76;
+      while (size > 32 && medir(ctx, p.valor, size, 700, -1) + (p.sufijo ? 90 : 0) > colW - 60) size -= 2;
+      const vw = medir(ctx, p.valor, size, 700, -1), sw = p.sufijo ? medir(ctx, p.sufijo, Math.max(26, size * .38), 500, 0) + 8 : 0;
+      const x0 = cx - (vw + sw) / 2, yb = y + 36 + 16 + size * .86;
+      texto(ctx, p.valor, x0, yb, { size, peso: 700, color: c.oscuro, tracking: -1 });
+      if (p.sufijo) texto(ctx, p.sufijo, x0 + vw + 8, yb, { size: Math.max(26, size * .38), peso: 500, color: c.acento });
+    });
+    ctx.restore();
+    y += precioH;
+
+    // Datos en fila con ícono dentro de un círculo.
+    if (statsH) {
+      y += 30;
+      const n = tarjetas.length, colW = cardW / n;
+      for (let i = 0; i < n; i++) {
+        const t = tarjetas[i], cx = M + colW * i + colW / 2;
+        if (i > 0) { ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(M + colW * i, y + 16, 2, statsH - 32); }
+        ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx - colW * .28, y + statsH / 2, 33, 0, Math.PI * 2); ctx.stroke();
+        try { const ic = await cargarIcono(o.iconoSvg(t.icono, '#ffffff')); ctx.drawImage(ic, cx - colW * .28 - 17, y + statsH / 2 - 17, 34, 34); } catch (e) { /* sin ícono */ }
+        const tx = cx - colW * .28 + 48, unidad = t.unidad ? ' ' + t.unidad : '';
+        let size = 48;
+        while (size > 26 && medir(ctx, t.valor + unidad, size, 700, -1) > colW * .62) size -= 2;
+        texto(ctx, t.valor + unidad, tx, y + statsH / 2 + 2, { size, peso: 700, color: '#fff', tracking: -1 });
+        texto(ctx, t.etiqueta, tx, y + statsH / 2 + 34, { size: 24, color: 'rgba(255,255,255,.8)' });
+      }
+      y += statsH;
+    }
+
+    // Píldoras con borde.
+    if (pild.alto) {
+      y += 28;
+      pild.lista.forEach(p => {
+        const px = M + p.x, py = y + p.fila * (pild.altura + 12);
+        ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2.5; ruta(ctx, px, py, p.w, pild.altura, pild.altura / 2); ctx.stroke();
+        texto(ctx, p.t, px + p.w / 2, py + 40, { size: 27, peso: 500, color: '#fff', align: 'center' });
+      });
+    }
+    pieMarca(ctx, c, 1856, 'rgba(255,255,255,.7)', '#ffffff');
+    return aBlob(canvas);
+  }
+
+  /** Diseños disponibles (el panel arma el selector con esta lista). */
+  const DISENOS = [
+    { id: 'clasico', nombre: 'Clásico' },
+    { id: 'foto',    nombre: 'Foto completa' },
+    { id: 'marca',   nombre: 'Color de marca' }
+  ];
+
+  function generar(v, o) {
+    o = o || {};
+    if (o.diseno === 'foto') return generarFoto(v, o);
+    if (o.diseno === 'marca') return generarMarca(v, o);
+    return generarClasico(v, o);
+  }
+
+  return { generar, cargarFoto, DISENOS };
 })();
