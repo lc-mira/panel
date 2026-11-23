@@ -141,9 +141,14 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .acc button[disabled] { opacity: .6; }
 .est-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .est-chips .chip { cursor: pointer; }
-.capa-img { z-index: 40; align-items: center; background: rgba(12,16,20,.86); }
+/* .capa.capa-img: más específico que .capa (declarada después) para que no pise fondo, z-index ni alineación */
+.capa.capa-img { z-index: 40; align-items: flex-start; background: rgba(12,16,20,.92); padding: 16px 12px; }
+.capa-img .img-vista { margin: auto 0; gap: 10px; }
+.capa-img .img-vista .nota { border: 0; padding: 0; background: none; }
 .img-vista { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; max-width: 400px; }
-.img-vista img { max-width: 100%; max-height: 66vh; border-radius: 16px; background: #fff; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.img-vista img { max-width: 100%; max-height: 44vh; border-radius: 16px; background: #fff; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.img-vista .chip { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.35); color: #fff; }
+.img-vista .chip[aria-pressed="true"] { background: #fff; border-color: #fff; color: var(--tinta); font-weight: 600; }
 .img-vista .nota { color: rgba(255,255,255,.78); font-size: 12.5px; line-height: 1.5; text-align: center; }
 .img-vista .botones { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
 .img-vista .botones .btn { flex: 1; }
