@@ -635,17 +635,128 @@ window.FichaImagen = (function () {
     return aBlob(canvas);
   }
 
+  /* ---------- Diseño "tarjeta": foto de fondo, tarjeta blanca con datos en columna y franja de contacto ---------- */
+  async function generarTarjeta(v, o) {
+    const { c, foto, canvas, ctx } = await preparar(v, o);
+    const cardW = W - M * 2, PAD = 44;
+    const recortar = (t, size, peso, max) => {
+      if (medir(ctx, t, size, peso, 0) <= max) return t;
+      while (t.length > 1 && medir(ctx, t + '…', size, peso, 0) > max) t = t.slice(0, -1);
+      return t + '…';
+    };
+
+    // Fondo: la foto completa.
+    if (foto) cubrir(ctx, foto, 0, 0, W, H);
+    else {
+      ctx.fillStyle = rellenoAcento(ctx, c, 0, 0, W, H); ctx.fillRect(0, 0, W, H);
+      texto(ctx, 'Sin foto', W / 2, 700, { size: 40, color: 'rgba(255,255,255,.6)', align: 'center' });
+    }
+    const velo = ctx.createLinearGradient(0, 0, 0, 640);
+    velo.addColorStop(0, 'rgba(8,12,16,.62)'); velo.addColorStop(1, 'rgba(8,12,16,0)');
+    ctx.fillStyle = velo; ctx.fillRect(0, 0, W, 640);
+    etiquetaNoDisponible(ctx, v, 70);
+
+    // Título arriba, centrado sobre la foto.
+    let tSize = 62, tLineas = [];
+    for (const s of [62, 56, 50, 44]) { tSize = s; tLineas = envolver(ctx, v.titulo || 'Inmueble', s, 600, 0, cardW - 40); if (tLineas.length <= 2) break; }
+    let ty = 150;
+    tLineas.forEach((l, i) => texto(ctx, l, W / 2, ty + tSize * .9 + i * Math.round(tSize * 1.22), { size: tSize, peso: 600, color: '#fff', align: 'center' }));
+    ty += tLineas.length * Math.round(tSize * 1.22);
+    if (v.proyecto) { texto(ctx, recortar(v.proyecto, 34, 600, cardW), W / 2, ty + 38, { size: 34, peso: 600, color: 'rgba(255,255,255,.92)', align: 'center' }); ty += 54; }
+    if (v.ubicacion) await ubicacionConPin(ctx, o, v.ubicacion, W / 2, ty + 38, '#ffffff', 'rgba(255,255,255,.88)', 32);
+
+    // Contenido de la tarjeta.
+    const datos = v.tarjetas.slice(0, 4);
+    const lista = v.tarjetas.slice(4).map(t => t.pildora)
+      .concat(v.detalles.filter(d => !d.com).map(d => d.texto))
+      .concat(v.detalles.filter(d => d.com).slice(0, 5).map(d => d.texto)).filter(Boolean).slice(0, 6)
+      .map(t => t.replace(/^Administración /, 'Admón. '));
+    const dosCols = datos.length && lista.length;
+    const colIzqW = dosCols ? Math.round((cardW - PAD * 2) * .42) : cardW - PAD * 2;
+    const FILA_D = 112, FILA_L = 78;
+    const bodyH = Math.max(datos.length * FILA_D, lista.length ? 62 + lista.length * FILA_L : 0);
+    const precioH = 196;
+    const cardH = PAD + precioH + (bodyH ? 26 + bodyH : 0) + PAD;
+    const cardY = 1700 - cardH;
+
+    conSombra(ctx, 'rgba(10,16,22,.35)', 60, 20, () => { ctx.fillStyle = '#fff'; ruta(ctx, M, cardY, cardW, cardH, 60); ctx.fill(); });
+
+    // Precio.
+    ctx.save(); ctx.translate(0, cardY + PAD - 6);
+    const nP = v.precios.length;
+    v.precios.forEach((p, i) => {
+      const colW = (cardW - PAD * 2) / nP, cx = M + PAD + colW * i + colW / 2;
+      if (i > 0) { ctx.fillStyle = '#e3e8ee'; ctx.fillRect(M + PAD + colW * i, 28, 2, precioH - 80); }
+      texto(ctx, p.etiqueta.toUpperCase(), cx, 36, { size: 24, peso: 500, color: '#7a8493', align: 'center', tracking: 3.4 });
+      let size = nP > 1 ? 58 : 88;
+      while (size > 34 && medir(ctx, p.valor, size, 700, -1) + (p.sufijo ? 90 : 0) > colW - 30) size -= 2;
+      const vw = medir(ctx, p.valor, size, 700, -1), sw = p.sufijo ? medir(ctx, p.sufijo, Math.max(26, size * .38), 500, 0) + 8 : 0;
+      const x0 = cx - (vw + sw) / 2, yb = 36 + 20 + size * .86;
+      texto(ctx, p.valor, x0, yb, { size, peso: 700, color: c.oscuro, tracking: -1 });
+      if (p.sufijo) texto(ctx, p.sufijo, x0 + vw + 8, yb, { size: Math.max(26, size * .38), peso: 500, color: c.acento });
+    });
+    ctx.restore();
+    let y = cardY + PAD + precioH - 14;
+    if (bodyH) {
+      ctx.fillStyle = '#e3e8ee'; ctx.fillRect(M + PAD, y, cardW - PAD * 2, 2);
+      y += 26 + 14;
+
+      // Columna de datos con ícono, separados por líneas.
+      for (let i = 0; i < datos.length; i++) {
+        const t = datos[i], fy = y - 14 + i * FILA_D, x0 = M + PAD;
+        if (i > 0) { ctx.fillStyle = rellenoAcento(ctx, c, x0, fy, colIzqW, 3); ctx.globalAlpha = .45; ctx.fillRect(x0, fy, colIzqW - 20, 2); ctx.globalAlpha = 1; }
+        try { const ic = await cargarIcono(o.iconoSvg(t.icono, c.acento)); ctx.drawImage(ic, x0 + 4, fy + FILA_D / 2 - 24, 48, 48); } catch (e) { /* sin ícono */ }
+        const tx = x0 + 76, unidad = t.unidad ? ' ' + t.unidad : '';
+        let size = 46;
+        while (size > 26 && medir(ctx, t.valor + unidad, size, 700, -1) > colIzqW - 90) size -= 2;
+        texto(ctx, t.etiqueta, tx, fy + 40, { size: 24, color: '#7a8493' });
+        texto(ctx, t.valor + unidad, tx, fy + 40 + 10 + size * .85, { size, peso: 700, color: '#1d232c', tracking: -1 });
+      }
+
+      // Columna derecha: "Incluye" con puntos de color.
+      if (lista.length) {
+        const x0 = dosCols ? M + PAD + colIzqW + 44 : M + PAD, maxW = cardW - PAD * 2 - (dosCols ? colIzqW + 44 : 0);
+        if (dosCols) { ctx.fillStyle = '#e3e8ee'; ctx.fillRect(x0 - 24, y - 8, 2, bodyH - 10); }
+        texto(ctx, 'INCLUYE', x0, y + 22, { size: 22, peso: 500, color: '#7a8493', tracking: 3.4 });
+        lista.forEach((t, i) => {
+          const fy = y + 62 + i * FILA_L;
+          ctx.fillStyle = c.suave; ctx.beginPath(); ctx.arc(x0 + 16, fy + 26, 16, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = c.acento; ctx.beginPath(); ctx.arc(x0 + 16, fy + 26, 6, 0, Math.PI * 2); ctx.fill();
+          texto(ctx, recortar(t, 29, 500, maxW - 48), x0 + 46, fy + 36, { size: 29, peso: 500, color: '#38404c' });
+        });
+      }
+    }
+
+    // Franja de contacto.
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 1760, W, H - 1760);
+    const items = [];
+    if (o.contacto && o.contacto.telefono) items.push({ icono: 'telefono', t: o.contacto.telefono });
+    if (o.dominio) items.push({ icono: 'web', t: o.dominio });
+    const ancho = items.map(it => 44 + medir(ctx, it.t, 32, 600, 0));
+    const hueco = 70, tot = ancho.reduce((a, b) => a + b, 0) + hueco * (items.length - 1);
+    let x = (W - tot) / 2;
+    for (let i = 0; i < items.length; i++) {
+      try { const ic = await cargarIcono(o.iconoSvg(items[i].icono, c.acento)); ctx.drawImage(ic, x, 1822 - 30, 36, 36); } catch (e) { /* sin ícono */ }
+      texto(ctx, items[i].t, x + 48, 1822, { size: 32, peso: 600, color: c.oscuro });
+      x += ancho[i] + hueco;
+    }
+    pieMarca(ctx, c, 1886, '#98a1ae', c.acento);
+    return aBlob(canvas);
+  }
+
   /** Diseños disponibles (el panel arma el selector con esta lista). */
   const DISENOS = [
     { id: 'clasico', nombre: 'Clásico' },
     { id: 'foto',    nombre: 'Foto completa' },
-    { id: 'marca',   nombre: 'Color de marca' }
+    { id: 'marca',   nombre: 'Color de marca' },
+    { id: 'tarjeta', nombre: 'Tarjeta' }
   ];
 
   function generar(v, o) {
     o = o || {};
     if (o.diseno === 'foto') return generarFoto(v, o);
     if (o.diseno === 'marca') return generarMarca(v, o);
+    if (o.diseno === 'tarjeta') return generarTarjeta(v, o);
     return generarClasico(v, o);
   }
 
