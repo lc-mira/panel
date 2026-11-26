@@ -296,6 +296,8 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .prop-card .prop-dato { font-size: 13px; color: var(--suave); margin-top: 4px; word-break: break-word; }
 .prop-card .prop-notas { font-size: 13px; color: var(--tinta); margin-top: 8px; white-space: pre-wrap; background: var(--fondo); border-radius: 8px; padding: 8px 10px; }
 .prop-card .prop-otros { font-size: 12.5px; color: var(--suave); margin-top: 8px; }
+.borrar-lead { color: var(--alerta); border-color: var(--alerta); background: transparent; }
+.lead-fila .borrar-lead { margin-left: auto; }
 .inm-prop { font-size: 12.5px; color: var(--suave); margin-top: 2px; cursor: pointer; }
 .inm-prop:hover { text-decoration: underline; }
 .ps-inm { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: var(--papel); border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; margin-top: 6px; cursor: pointer; font: inherit; }
@@ -635,6 +637,11 @@ main, .lista > * { min-width: 0; max-width: 100%; }
         <input id="com-fecha" type="date">
         <span class="pista">Por defecto, hoy. Se pide aunque la comisión sea 0.</span>
       </div>
+      <div class="campo">
+        <label for="com-notas">Notas del cierre (opcional)</label>
+        <textarea id="com-notas" rows="3" maxlength="600" placeholder="Ej. Lo vendió con Laura Gómez (Inmobiliaria X). Forma de pago: crédito Bancolombia."></textarea>
+        <span class="pista">Se guardan en las notas privadas del inmueble, con la fecha.</span>
+      </div>
     </div>
     <div class="hoja-pie">
       <button class="btn" onclick="cancelarComision()">Cancelar cambio de estado</button>
@@ -734,6 +741,11 @@ main, .lista > * { min-width: 0; max-width: 100%; }
         <label for="ce-fecha">¿Qué día se cerró el negocio?</label>
         <input id="ce-fecha" type="date">
         <span class="pista">Por defecto, hoy.</span>
+      </div>
+      <div class="campo" id="ce-notas-caja" hidden>
+        <label for="ce-notas">Notas del cierre (opcional)</label>
+        <textarea id="ce-notas" rows="3" maxlength="600" placeholder="Ej. Lo vendió con Laura Gómez (Inmobiliaria X). Forma de pago: crédito Bancolombia."></textarea>
+        <span class="pista">Se guardan en las notas privadas del inmueble, con la fecha.</span>
       </div>
     </div>
     <div class="hoja-pie">
@@ -1117,6 +1129,13 @@ function dineroVista(v) {
 }
 /** Valor comparable/guardable de un campo: dinero → solo dígitos; el resto → texto recortado. */
 /* ---- Fechas (dd/mm/aaaa, hora de Colombia) ---- */
+/** Suma una nota de cierre al final de las notas privadas, con la fecha del cierre. */
+function notaCierre(previas, nota, fechaDmy) {
+  nota = String(nota || '').replace(/\s+/g, ' ').trim();
+  if (!nota) return String(previas || '');
+  previas = String(previas || '').trim();
+  return (previas ? previas + '\n' : '') + '[Cierre ' + fechaDmy + '] ' + nota;
+}
 function hoyISO() {
   var p = {};
   try {
@@ -1135,9 +1154,14 @@ function fechaVista(v) {
   if (m) return ('0' + m[1]).slice(-2) + '/' + ('0' + m[2]).slice(-2) + '/' + (m[3].length === 2 ? '20' + m[3] : m[3]);
   return v;
 }
+/** Links de video: separados por salto de línea, espacio o coma. */
+function _linksVideo(v) {
+  return String(v == null ? '' : v).split(/[\s,;|]+/).map(function(x){ return x.trim(); }).filter(Boolean);
+}
 function valorNormal(clave, v) {
   v = String(v == null ? '' : v).trim();
   if (clave === 'fechaVenta') return fechaVista(v);
+  if (clave === 'videos') return _linksVideo(v).join('\n');
   if (CAMPOS_DINERO.indexOf(clave) !== -1) { var d = soloDigitos(v); if (d !== null) return d; }
   return v;
 }
@@ -1350,6 +1374,7 @@ var REGLAS_COLUMNAS = [
   ['documentos',    function(h){ return h.indexOf('documento') === 0; }],
   ['comision',      function(h){ return h.indexOf('comision') === 0; }],
   ['fechaVenta',    function(h){ return h.indexOf('fecha') === 0; }],
+  ['videos',        function(h){ return h.indexOf('video') === 0; }],
   ['propietarioId', function(h){ return h.indexOf('propietario') === 0; }]
 ];
 
@@ -1470,6 +1495,7 @@ function abrirCambioEstado(fila) {
   document.getElementById('ce-msg').textContent = '';
   document.getElementById('ce-com').value = conMiles(soloDigitos(f.comision || '') || '');
   document.getElementById('ce-fecha').value = hoyISO();
+  document.getElementById('ce-notas').value = '';
   _pintarChipsEstado();
   document.getElementById('capa-estado').hidden = false;
   histAbrir();
@@ -1485,6 +1511,7 @@ function _pintarChipsEstado() {
   var pideCom = ESTADOS_CIERRE.test(_ce.elegido) && norm(_ce.elegido) !== norm(_ce.original);
   document.getElementById('ce-com-caja').hidden = !pideCom;
   document.getElementById('ce-fecha-caja').hidden = !pideCom;
+  document.getElementById('ce-notas-caja').hidden = !pideCom;
   if (pideCom) setTimeout(function(){ var i = document.getElementById('ce-com'); i.focus(); i.select(); }, 50);
 }
 function cerrarCambioEstado(desdeHistorial) {
@@ -1503,12 +1530,16 @@ function guardarCambioEstado() {
     campos.comision = soloDigitos(document.getElementById('ce-com').value) || '0';
     // También se pide la fecha de venta (por defecto hoy), aunque la comisión sea 0.
     campos.fechaVenta = fechaVista(document.getElementById('ce-fecha').value || hoyISO());
+    var nc = document.getElementById('ce-notas').value;
+    var fPrev = _inmPorFila(_ce.fila);
+    if (nc.trim()) campos.notasPrivadas = notaCierre(fPrev && fPrev.notasPrivadas, nc, campos.fechaVenta);
   }
   var fila = _ce.fila, estado = _ce.elegido;
   var f = _inmPorFila(fila);
   cerrarCambioEstado();
   toast('Estado actualizado a ' + estado + '.');
-  if (f) { f.estado = estado; if (campos.comision !== undefined) { f.comision = campos.comision; f.fechaVenta = campos.fechaVenta; } pintarChipsInm(); pintarInmuebles(); }
+  if (f) { f.estado = estado; if (campos.comision !== undefined) { f.comision = campos.comision; f.fechaVenta = campos.fechaVenta; }
+    if (campos.notasPrivadas !== undefined) f.notasPrivadas = campos.notasPrivadas; pintarChipsInm(); pintarInmuebles(); }
   enCola(api({ accion: 'guardarInmueble', fila: fila, campos: campos })).then(function(r){
     if (!r.ok) throw new Error(r.error || 'Error al guardar');
     return cargarInmuebles();
@@ -1662,7 +1693,7 @@ function imagenCopiarTexto() {
 /* ============================================================
    INMUEBLES — FORMULARIO
    ============================================================ */
-var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','link'];
+var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','videos','link'];
 var CAMPOS_PRIVADOS = ['encargado','celular','notasPrivadas'];
 var CAMPOS_COMISION = ['comision','fechaVenta'];
 var CAMPOS_READONLY = ['id'];
@@ -1747,7 +1778,7 @@ function _renderCampos(contenedorId, claves, vals, privados) {
   cont.innerHTML = claves.map(function(clave) {
     var v = String(vals[clave]||'').trim();
     var titulo = _tituloLabel(clave);
-    var ancho = ['observaciones','notasPrivadas','link','fotos'].indexOf(clave)!==-1 ? ' ancho' : '';
+    var ancho = ['observaciones','notasPrivadas','link','fotos','videos'].indexOf(clave)!==-1 ? ' ancho' : '';
     var readonly = CAMPOS_READONLY.indexOf(clave)!==-1;
     var ops = OPCIONES[clave];
     var control;
@@ -1759,6 +1790,8 @@ function _renderCampos(contenedorId, claves, vals, privados) {
       control = '<textarea id="f-'+clave+'">'+esc(v)+'</textarea>';
     } else if (clave === 'observaciones') {
       control = '<textarea id="f-'+clave+'">'+esc(v)+'</textarea>';
+    } else if (clave === 'videos') {
+      control = '<textarea id="f-'+clave+'" rows="3" placeholder="https://www.youtube.com/watch?v=…&#10;https://www.tiktok.com/@tu_usuario/video/…" autocapitalize="off" spellcheck="false">'+esc(v)+'</textarea>';
     } else if (clave === 'ciudad') {
       var vc = v || ((S.edicion && !S.edicion.fila) ? _ciudadPorDefecto() : '');
       control = '<input id="f-'+clave+'" type="text" list="lista-ciudades" autocomplete="off" value="'+esc(vc)+'">' +
@@ -1823,7 +1856,7 @@ function _tituloLabel(clave) {
     parqueadero:'Parqueadero(s)', piso:'Piso', estrato:'Estrato',
     ciudad:'Ciudad', administracion:'Administración (COP/mes)', ascensor:'Ascensor',
     estado:'Estado', servicio:'Servicio', credito:'Aplica crédito',
-    observaciones:'Observaciones públicas', link:'Link ficha externa',
+    observaciones:'Observaciones públicas', videos:'Videos (solo tu catálogo)', link:'Link ficha externa',
     captacion:'Captación', encargado:'Encargado', celular:'Celular encargado',
     notasPrivadas:'Notas privadas', documentos:'Documentos', comision:'Comisión (COP)', fechaVenta:'Fecha de venta (dd/mm/aaaa)',
     id:'ID (automático)'
@@ -1838,6 +1871,7 @@ function _pista(clave) {
     ciudad: 'Cali, Palmira, Jamundí… escribe otra si hace falta.',
     administracion: 'Solo conjunto cerrado. Déjalo vacío si no paga administración (ej. 350.000).',
     ascensor: 'Solo apartamentos.',
+    videos: 'Hasta 3 links, uno por línea (YouTube, TikTok, Instagram…). Se ven SOLO en tu catálogo; la ficha para colegas no los muestra.',
     observaciones: 'Pública — la ven los visitantes del catálogo. Teléfonos y correos se ocultan solos.',
     notasPrivadas: 'Privada — solo la ven los administradores. Puedes anotar saldo de hipoteca, condiciones, etc.',
     comision: 'En pesos (ej. 12.000.000). Puede ser 0.',
@@ -1885,6 +1919,7 @@ function preguntarComision(estado, alResponder, alCancelar) {
   var inp = document.getElementById('com-valor');
   inp.value = campo ? dineroVista(campo.value) : '';
   document.getElementById('com-fecha').value = hoyISO();
+  document.getElementById('com-notas').value = '';
   document.getElementById('com-texto').textContent =
     'Marcaste este inmueble como ' + estado + '. Anota cuánto fue la comisión (para tu declaración de renta).';
   document.getElementById('capa-comision').hidden = false;
@@ -1898,6 +1933,8 @@ function responderComision(sinComision) {
   if (campo) campo.value = conMiles(d);
   var cf = document.getElementById('f-fechaVenta');
   if (cf) cf.value = fechaVista(document.getElementById('com-fecha').value || hoyISO());
+  var nn = document.getElementById('f-notasPrivadas');
+  if (nn) nn.value = notaCierre(nn.value, document.getElementById('com-notas').value, fechaVista(document.getElementById('com-fecha').value || hoyISO()));
   S.edicion.comisionRespondida = cb.estado;
   cerrarComision();
   _mostrarComision(); marcarCambios();
@@ -2008,6 +2045,17 @@ function guardarInmueble() {
     document.getElementById('hoja-mensaje').innerHTML = '<div class="mensaje error">Elige un Estado antes de guardar (Disponible, Reservado, Vendido, Arrendado o No disponible).</div>';
     estadoEl.focus();
     return;
+  }
+  var vd = document.getElementById('f-videos');
+  if (vd) {
+    var links = _linksVideo(vd.value);
+    var malo = links.filter(function(u){ return !/^https:\/\/[^\s\/]+\.[^\s]+/i.test(u); })[0];
+    if (malo || links.length > 3) {
+      document.getElementById('hoja-mensaje').innerHTML = '<div class="mensaje error">' +
+        (links.length > 3 ? 'Máximo 3 links de video.' : 'El link de video «' + esc(malo.slice(0, 60)) + '» no es válido: debe empezar por https://') + '</div>';
+      vd.focus();
+      return;
+    }
   }
   var estadoNuevo = estadoEl ? estadoEl.value.trim() : '';
   if (S.edicion && ESTADOS_CIERRE.test(estadoNuevo) &&
@@ -2901,7 +2949,7 @@ function _leadDatosHtml(f) {
 /** Tarjeta de lead del plan Catálogo: datos de contacto y WhatsApp, sin etapas ni notas. */
 function leadSimpleHtml(f) {
   var wa = waUrl(f.whatsapp);
-  return '<article class="lead">'+
+  return '<article class="lead" data-fila="'+esc(String(f.fila||''))+'">'+
     '<div class="lead-cab">'+
       '<div>'+
         '<div class="nom">'+esc(f.nombre||'Sin nombre')+(tipoDe(f)!=='Comprador'?'<span class="etq-tipo">'+esc(tipoDe(f))+'</span>':'')+'</div>'+
@@ -2910,6 +2958,7 @@ function leadSimpleHtml(f) {
       (wa?'<a class="wa" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
     '</div>'+
     _leadDatosHtml(f)+
+    '<div class="lead-fila"><button class="btn borrar-lead" title="Borrar este lead" aria-label="Borrar lead">🗑️ Borrar</button></div>'+
     '</article>';
 }
 
@@ -2934,6 +2983,7 @@ function leadHtml(f) {
       '<select class="etapa '+claseEtapa(f.pipeline)+'" aria-label="Etapa">'+ops+'</select>'+
       '<button class="btn btn-primario guardar">Guardar</button>'+
       (t!=='Propietario'?'<button class="btn crear-req" title="Crear requerimiento con datos de este lead">+ Req</button>':'')+
+      '<button class="btn borrar-lead" title="Borrar este lead" aria-label="Borrar lead">🗑️</button>'+
       (t==='Propietario' && F.propietarios && f.pipeline==='Captado' ? '<button class="btn crear-prop" title="Crea el propietario con los datos del lead y abre el inmueble ya vinculado">🏠 Crear propietario e inmueble</button>' : '')+
     '</div>'+
     (f.notas?'<div class="notas">'+esc(f.notas)+'</div>':'')+
@@ -2951,6 +3001,35 @@ function wireLead(art) {
   var bp = art.querySelector('.crear-prop');
   if (bp) bp.onclick = function(){ propDesdeLead(art.dataset.fila, bp); };
 }
+
+/** Borra definitivamente un lead (fila de la hoja). Pide confirmación. */
+function borrarLead(art) {
+  var fila = Number(art.dataset.fila);
+  var f = S.leads && S.leads.filas.filter(function(x){ return x.fila === fila; })[0];
+  if (!f) return;
+  var quien = (f.nombre || 'este lead') + (f.whatsapp ? ' (' + f.whatsapp + ')' : '');
+  if (!confirm('¿Borrar el lead de ' + quien + '? Se elimina de la hoja y no se puede deshacer.')) return;
+  var antes = S.leads.filas.slice();
+  // Se quita de la pantalla ya; al borrar una fila, las de abajo suben un puesto.
+  S.leads.filas = S.leads.filas.filter(function(x){ return x !== f; });
+  S.leads.filas.forEach(function(x){ if (x.fila > fila) x.fila--; });
+  document.getElementById('num-leads').textContent = S.leads.filas.length;
+  pintarChipsLeads(); pintarLeads();
+  toast('Lead borrado.');
+  enCola(api({ accion: 'eliminarLead', fila: fila, nombre: f.nombre || '', whatsapp: f.whatsapp || '' })).then(function(r){
+    if (!r.ok) throw new Error(r.error || 'Error');
+  }).catch(function(e){
+    toast('No se borró (' + e.message + '). Se recargan los leads.', 6000);
+    S.leads.filas = antes;
+    cargarLeads();
+  });
+}
+document.addEventListener('click', function(ev){
+  var b = ev.target.closest && ev.target.closest('.borrar-lead');
+  if (!b) return;
+  var art = b.closest('article.lead');
+  if (art) borrarLead(art);
+});
 
 function guardarLead(art) {
   var fila = Number(art.dataset.fila);
