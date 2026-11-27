@@ -192,9 +192,11 @@ window.FichaVista = (function () {
 
     // Tarjetas de datos (la página las desliza; la imagen usa las 3 primeras)
     const tarjetas = [];
-    if (hayNum(inm.area))         tarjetas.push({ icono: 'area',  etiqueta: 'Área',     valor: inm.area, unidad: 'm²' });
+    const conPrivada = hayNum(inm.areaPrivada);   // solo se aclara "construida" si también hay área privada
+    if (hayNum(inm.area))         tarjetas.push({ icono: 'area',  etiqueta: conPrivada ? 'Área construida' : 'Área', valor: inm.area, unidad: 'm²' });
     if (hayNum(inm.habitaciones)) tarjetas.push({ icono: 'cama',  etiqueta: 'Alcobas',  valor: inm.habitaciones });
     if (hayNum(inm.banos))        tarjetas.push({ icono: 'bano',  etiqueta: 'Baños',    valor: inm.banos });
+    if (conPrivada)               tarjetas.push({ icono: 'area',  etiqueta: 'Área privada', valor: inm.areaPrivada, unidad: 'm²', pildora: 'Área privada ' + inm.areaPrivada + ' m²' });
     const parq = parqueaderoTexto(inm);
     if (parq) {
       const n = aNumero(inm.plazas);
@@ -259,7 +261,10 @@ window.FichaVista = (function () {
     const lineas = [];
     if (precio) lineas.push('Precio de venta: ' + pesos(precio));
     if (canon)  lineas.push((precio ? 'Precio de arriendo: ' : 'Canon de arriendo: ') + pesos(canon) + '/mes');
-    if (hayNum(inm.area))         lineas.push(inm.area + ' m²');
+    if (hayNum(inm.areaPrivada)) {
+      if (hayNum(inm.area)) lineas.push('Área construida: ' + inm.area + ' m²');
+      lineas.push('Área privada: ' + inm.areaPrivada + ' m²');
+    } else if (hayNum(inm.area)) lineas.push(inm.area + ' m²');
     if (hayNum(inm.habitaciones)) lineas.push(plural(inm.habitaciones, 'alcoba'));
     if (hayNum(inm.banos))        lineas.push(plural(inm.banos, 'baño'));
     const parqTxt = parqueaderoTexto(inm);

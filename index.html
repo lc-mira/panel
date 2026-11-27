@@ -1355,6 +1355,7 @@ var REGLAS_COLUMNAS = [
   ['ciudad',        function(h){ return h.indexOf('ciudad') !== -1 || h.indexOf('municipio') !== -1; }],
   ['precio',        function(h){ return h.indexOf('precio') === 0; }],
   ['canon',         function(h){ return h.indexOf('canon') === 0 || (h.indexOf('arriendo') === 0 && h.indexOf('precio') === -1); }],
+  ['areaPrivada',   function(h){ return h.indexOf('area') === 0 && h.indexOf('privad') !== -1; }],   // antes que 'area'
   ['area',          function(h){ return h.indexOf('area') === 0; }],
   ['habitaciones',  function(h){ return h.indexOf('habitacion') === 0 || h.indexOf('alcoba') === 0; }],
   ['banos',         function(h){ return h.indexOf('bano') === 0; }],
@@ -1695,7 +1696,7 @@ function imagenCopiarTexto() {
 /* ============================================================
    INMUEBLES — FORMULARIO
    ============================================================ */
-var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','plazas','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','videos','link'];
+var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','ciudad','precio','canon','area','areaPrivada','habitaciones','banos','parqueadero','plazas','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','videos','link'];
 var CAMPOS_PRIVADOS = ['encargado','celular','notasPrivadas'];
 var CAMPOS_COMISION = ['comision','fechaVenta'];
 var CAMPOS_READONLY = ['id'];
@@ -1801,7 +1802,7 @@ function _renderCampos(contenedorId, claves, vals, privados) {
     } else if (ops) {
       var optHtml = '<option value=""></option>' + ops.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>'; }).join('');
       control = '<select id="f-'+clave+'">'+optHtml+'</select>';
-    } else if (clave==='area'||clave==='habitaciones'||clave==='banos'||clave==='piso'||clave==='estrato'||clave==='plazas') {
+    } else if (clave==='area'||clave==='habitaciones'||clave==='banos'||clave==='piso'||clave==='estrato'||clave==='plazas'||clave==='areaPrivada') {
       control = '<input id="f-'+clave+'" type="text" inputmode="decimal" value="'+esc(v)+'">';
     } else {
       control = '<input id="f-'+clave+'" type="text" value="'+esc(v)+'">';
@@ -1856,7 +1857,7 @@ function _tituloLabel(clave) {
   var m = {
     tipo:'Tipo', proyecto:'Proyecto / Nombre', barrio:'Barrio / Zona',
     precio:'Precio de venta', canon:'Precio arriendo (mes)',
-    area:'Área m²', habitaciones:'Habitaciones', banos:'Baños',
+    area:'Área construida m²', areaPrivada:'Área privada m²', habitaciones:'Habitaciones', banos:'Baños',
     parqueadero:'Parqueadero', plazas:'Plazas (carros)', piso:'Piso', estrato:'Estrato',
     ciudad:'Ciudad', administracion:'Administración (COP/mes)', ascensor:'Ascensor',
     estado:'Estado', servicio:'Servicio', credito:'Aplica crédito',
@@ -1875,6 +1876,7 @@ function _pista(clave) {
     ciudad: 'Cali, Palmira, Jamundí… escribe otra si hace falta.',
     administracion: 'Solo conjunto cerrado. Déjalo vacío si no paga administración (ej. 350.000).',
     ascensor: 'Solo apartamentos.',
+    areaPrivada: 'Opcional. Apartamentos y casas en propiedad horizontal. Si la llenas, el catálogo muestra "Área construida" y "Área privada".',
     plazas: 'Cuántos carros caben (ej. 2). Se ve en tu catálogo y en la ficha para colegas.',
     videos: 'Hasta 3 links, uno por línea (YouTube, TikTok, Instagram…). Se ven SOLO en tu catálogo; la ficha para colegas no los muestra.',
     observaciones: 'Pública — la ven los visitantes del catálogo. Teléfonos y correos se ocultan solos.',
@@ -2704,7 +2706,7 @@ function llenarDesdeUrl() {
     // Fotos
     if (d.fotos && d.fotos.length) { _setFotos(d.fotos); n++; }
     // Campos
-    ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','plazas','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','encargado','celular','link'].forEach(function(clave){
+    ['tipo','proyecto','barrio','ciudad','precio','canon','area','areaPrivada','habitaciones','banos','parqueadero','plazas','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','encargado','celular','link'].forEach(function(clave){
       var v = d[clave];
       if (v == null || v === '') return;
       var el = document.getElementById('f-'+clave);
