@@ -52,6 +52,18 @@ window.FichaVista = (function () {
   /** Singular/plural simple: plural(2,'baño') → "2 baños". */
   function plural(n, palabra) { return n + ' ' + palabra + (Number(n) === 1 ? '' : 's'); }
 
+  /** Parqueadero en una línea: "Privado · 2 plazas". Devuelve '' si no tiene. */
+  function parqueaderoTexto(inm) {
+    const tipo = String(inm.parqueadero || '').trim();
+    if (/^(0|no)/i.test(tipo)) return '';
+    const n = aNumero(inm.plazas);
+    if (/^\d+$/.test(tipo)) return plural(tipo, 'parqueadero');   // dato antiguo: solo un número
+    const partes = [];
+    if (tipo) partes.push(tipo);
+    if (n > 0) partes.push(n + (n === 1 ? ' plaza' : ' plazas'));
+    return partes.join(' · ');
+  }
+
   /**
    * "Barrio, Ciudad" sin repetir la ciudad si el barrio ya la trae (ej. "Ciudad Córdoba, Cali")
    * y sin inventar una ciudad por defecto (hay inmuebles en Cali, Palmira, Jamundí…).
@@ -78,6 +90,8 @@ window.FichaVista = (function () {
   const COLORES = { acento: '#0f5b4f', oscuro: '#0b443b', claro: '#578c84', suave: '#e7efed' };
 
   const IC_RUTAS = {
+    web:     '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/>',
+    telefono:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
     area:    '<path d="M4 9V4h5"/><path d="M20 15v5h-5"/><path d="M4 4l6 6"/><path d="M20 20l-6-6"/>',
     cama:    '<path d="M3 18V6"/><path d="M3 14h18v4"/><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="1.6"/>',
     bano:    '<path d="M4 12h16v2a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-2z"/><path d="M6 12V6a2 2 0 0 1 3.5-1.3"/><path d="M7 19l-1 2M17 19l1 2"/>',
@@ -178,14 +192,19 @@ window.FichaVista = (function () {
 
     // Tarjetas de datos (la página las desliza; la imagen usa las 3 primeras)
     const tarjetas = [];
-    if (hayNum(inm.area))         tarjetas.push({ icono: 'area',  etiqueta: 'Área',     valor: inm.area, unidad: 'm²' });
+    const conPrivada = hayNum(inm.areaPrivada);   // solo se aclara "construida" si también hay área privada
+    if (hayNum(inm.area))         tarjetas.push({ icono: 'area',  etiqueta: conPrivada ? 'Área construida' : 'Área', valor: inm.area, unidad: 'm²' });
     if (hayNum(inm.habitaciones)) tarjetas.push({ icono: 'cama',  etiqueta: 'Alcobas',  valor: inm.habitaciones });
     if (hayNum(inm.banos))        tarjetas.push({ icono: 'bano',  etiqueta: 'Baños',    valor: inm.banos });
-    if (inm.parqueadero && !/^(0|no)/i.test(inm.parqueadero)) {
-      const num = /^\d+$/.test(inm.parqueadero);
+    if (conPrivada)               tarjetas.push({ icono: 'area',  etiqueta: 'Área privada', valor: inm.areaPrivada, unidad: 'm²', pildora: 'Área privada ' + inm.areaPrivada + ' m²' });
+    const parq = parqueaderoTexto(inm);
+    if (parq) {
+      const n = aNumero(inm.plazas);
       tarjetas.push({
-        icono: 'carro', etiqueta: 'Parqueadero', valor: inm.parqueadero,
-        pildora: num ? plural(inm.parqueadero, 'parqueadero') : 'Parqueadero ' + inm.parqueadero.toLowerCase(),
+        icono: 'carro', etiqueta: 'Parqueadero' + (n > 0 && /^(comunitario|privado)/i.test(inm.parqueadero) ? ' ' + String(inm.parqueadero).toLowerCase() : ''),
+        valor: n > 0 ? String(n) : parq, unidad: n > 0 ? (n === 1 ? 'plaza' : 'plazas') : '',
+        pildora: n > 0 ? plural(n, 'parqueadero') + (/^(comunitario|privado)/i.test(inm.parqueadero) ? ' ' + String(inm.parqueadero).toLowerCase() + (n === 1 ? '' : 's') : '')
+                       : (/^\d+$/.test(inm.parqueadero) ? plural(inm.parqueadero, 'parqueadero') : 'Parqueadero ' + String(inm.parqueadero).toLowerCase()),
       });
     }
     if (hayNum(inm.estrato)) tarjetas.push({ icono: 'estrato', etiqueta: 'Estrato', valor: inm.estrato, pildora: 'Estrato ' + inm.estrato });
@@ -242,12 +261,14 @@ window.FichaVista = (function () {
     const lineas = [];
     if (precio) lineas.push('Precio de venta: ' + pesos(precio));
     if (canon)  lineas.push((precio ? 'Precio de arriendo: ' : 'Canon de arriendo: ') + pesos(canon) + '/mes');
-    if (hayNum(inm.area))         lineas.push(inm.area + ' m²');
+    if (hayNum(inm.areaPrivada)) {
+      if (hayNum(inm.area)) lineas.push('Área construida: ' + inm.area + ' m²');
+      lineas.push('Área privada: ' + inm.areaPrivada + ' m²');
+    } else if (hayNum(inm.area)) lineas.push(inm.area + ' m²');
     if (hayNum(inm.habitaciones)) lineas.push(plural(inm.habitaciones, 'alcoba'));
     if (hayNum(inm.banos))        lineas.push(plural(inm.banos, 'baño'));
-    if (inm.parqueadero && !/^(0|no)/i.test(inm.parqueadero)) {
-      lineas.push(/^\d+$/.test(inm.parqueadero) ? plural(inm.parqueadero, 'parqueadero') : 'Parqueadero ' + inm.parqueadero.toLowerCase());
-    }
+    const parqTxt = parqueaderoTexto(inm);
+    if (parqTxt) lineas.push('Parqueadero: ' + parqTxt);
     if (hayNum(inm.estrato)) lineas.push('Estrato: ' + inm.estrato);
 
     const donde = ubicacionTexto(inm);

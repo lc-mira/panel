@@ -103,6 +103,7 @@ main { max-width: 1000px; margin: 0 auto; padding: 16px; }
 .chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 .lista { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 html, body { overflow-x: hidden; max-width: 100%; }
+html { overscroll-behavior-y: none; }
 main, .lista > * { min-width: 0; max-width: 100%; }
 .vacio, .cargando { text-align: center; color: var(--tenue); padding: 40px 10px; }
 
@@ -140,9 +141,14 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .acc button[disabled] { opacity: .6; }
 .est-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .est-chips .chip { cursor: pointer; }
-.capa-img { z-index: 40; align-items: center; background: rgba(12,16,20,.86); }
+/* .capa.capa-img: más específico que .capa (declarada después) para que no pise fondo, z-index ni alineación */
+.capa.capa-img { z-index: 40; align-items: flex-start; background: rgba(12,16,20,.92); padding: 16px 12px; }
+.capa-img .img-vista { margin: auto 0; gap: 10px; }
+.capa-img .img-vista .nota { border: 0; padding: 0; background: none; }
 .img-vista { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; max-width: 400px; }
-.img-vista img { max-width: 100%; max-height: 66vh; border-radius: 16px; background: #fff; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.img-vista img { max-width: 100%; max-height: 44vh; border-radius: 16px; background: #fff; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.img-vista .chip { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.35); color: #fff; }
+.img-vista .chip[aria-pressed="true"] { background: #fff; border-color: #fff; color: var(--tinta); font-weight: 600; }
 .img-vista .nota { color: rgba(255,255,255,.78); font-size: 12.5px; line-height: 1.5; text-align: center; }
 .img-vista .botones { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
 .img-vista .botones .btn { flex: 1; }
@@ -190,8 +196,30 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .temp.rojo { background: #fee2e2; color: #b91c1c; } .temp.vencido { background: #5c1d1d; color: #fff; }
 .lead.t-verde { box-shadow: inset 4px 0 0 #22c55e; } .lead.t-amarillo { box-shadow: inset 4px 0 0 #eab308; }
 .lead.t-rojo { box-shadow: inset 4px 0 0 #ef4444; } .lead.t-vencido { box-shadow: inset 4px 0 0 #5c1d1d; }
-.e-Nuevo { background: #e0e7ff; } .e-Contactado { background: #fef3c7; } .e-Calificado { background: #bbf7d0; }
-.e-Visita { background: #86efac; } .e-Negocio { background: #22c55e; color:#fff; } .e-No { background: #fecaca; }
+.e-Nuevo { background: #fed7aa; color:#9a3412; } .e-Contactado { background: #fed7aa; color:#9a3412; } .e-Calificado { background: #bbf7d0; color:#166534; }
+.e-Visita { background: #fed7aa; color:#9a3412; } .e-Negocio { background: #e5e7eb; color:#6b7280; } .e-No { background: #e5e7eb; color:#6b7280; }
+.chip.ch-aten { background:#fff7ed; border-color:#fb923c; color:#c2410c; font-weight:600; }
+.chip.ch-ok { background:#f0fdf4; border-color:#4ade80; color:#166534; }
+.chip.ch-gris { background:#f3f4f6; border-color:#e5e7eb; color:#9ca3af; }
+.chip.ch-aten[aria-pressed="true"] { background:#f97316; border-color:#f97316; color:#fff; }
+.chip.ch-ok[aria-pressed="true"] { background:#16a34a; border-color:#16a34a; color:#fff; }
+.chip.ch-gris[aria-pressed="true"] { background:#6b7280; border-color:#6b7280; color:#fff; }
+.e-Negociacion { background: #d9f99d; } .e-Precio { background: #bae6fd; } .e-Captado { background: #86efac; }
+.e-Publicado { background: #22c55e; color:#fff; } .e-Estudio { background: #ddd6fe; } .e-Contrato { background: #22c55e; color:#fff; }
+.hub-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 14px; }
+.hub-card { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit; cursor: pointer;
+  background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 16px 18px; transition: border-color var(--trans); }
+.hub-card:hover, .hub-card:active { border-color: var(--acento); }
+.hub-card .hub-txt { flex: 1; min-width: 0; }
+.hub-card .hub-tit { font-size: 17px; font-weight: 700; color: var(--tinta); }
+.hub-card .hub-des { font-size: 13px; color: var(--tenue); margin-top: 2px; }
+.hub-card .hub-aten { font-size: 12.5px; font-weight: 600; color: #b45309; margin-top: 6px; }
+.hub-card .hub-n { font-size: 30px; font-weight: 700; color: var(--acento); line-height: 1; }
+.hub-card .hub-flecha { color: var(--tenue); font-size: 20px; }
+.cab-tipo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cab-tipo h2 { font-size: 18px; margin: 0; }
+.cab-tipo .btn { padding: 7px 12px; font-size: 13px; }
+.etq-tipo { display: inline-block; font-size: 11px; font-weight: 600; background: var(--acento2); color: var(--acento); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
 .estado-meta { font-size: 12px; color: var(--tenue); margin-top: 6px; }
 .estado-meta.error { color: var(--alerta); }
 
@@ -262,6 +290,26 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 .archivos-tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--linea); }
 .arch-tab { border: 0; background: none; padding: 8px 14px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--suave); border-bottom: 2px solid transparent; }
 .arch-tab[aria-selected="true"] { color: var(--acento); border-bottom-color: var(--acento); }
+.arch-tab[hidden] { display: none; }
+.prop-card { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 12px 14px; }
+.prop-card .prop-nom { font-weight: 700; font-size: 15px; }
+.prop-card .prop-dato { font-size: 13px; color: var(--suave); margin-top: 4px; word-break: break-word; }
+.prop-card .prop-notas { font-size: 13px; color: var(--tinta); margin-top: 8px; white-space: pre-wrap; background: var(--fondo); border-radius: 8px; padding: 8px 10px; }
+.prop-card .prop-otros { font-size: 12.5px; color: var(--suave); margin-top: 8px; }
+.borrar-lead { color: var(--alerta); border-color: var(--alerta); background: transparent; }
+.lead-fila .borrar-lead { margin-left: auto; }
+.inm-prop { font-size: 12.5px; color: var(--suave); margin-top: 2px; cursor: pointer; }
+.inm-prop:hover { text-decoration: underline; }
+.ps-inm { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: var(--papel); border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; margin-top: 6px; cursor: pointer; font: inherit; }
+.ps-inm .n { font-weight: 600; font-size: 13px; } .ps-inm .t { font-size: 12px; color: var(--suave); }
+.prop-acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.prop-acc .btn { padding: 7px 12px; font-size: 13px; text-decoration: none; display: inline-block; }
+.prop-res { display: grid; gap: 6px; margin: 8px 0 12px; }
+.prop-res button { text-align: left; font: inherit; cursor: pointer; background: var(--papel); border: 1px solid var(--linea); border-radius: 8px; padding: 9px 12px; }
+.prop-res button:hover { border-color: var(--acento); }
+.prop-res .n { font-weight: 600; } .prop-res .t { color: var(--tenue); font-size: 12.5px; margin-left: 6px; }
+.prop-vacio { color: var(--tenue); font-size: 13px; padding: 8px 0 12px; }
+.prop-form { display: grid; gap: 12px; }
 .arch-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .fotos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
 .foto { position: relative; border-radius: 8px; overflow: hidden; background: var(--fondo); aspect-ratio: 4/3; }
@@ -374,13 +422,28 @@ main, .lista > * { min-width: 0; max-width: 100%; }
   <!-- Leads -->
   <section id="sec-leads" hidden>
     <div class="aviso-plan" id="aviso-leads" hidden></div>
-    <div class="herramientas">
-      <input class="buscar" id="buscar-leads" type="search" placeholder="Buscar nombre, WhatsApp, inmueble, zona…" oninput="pintarLeads()">
-      <button class="btn" onclick="cargarLeads()">Actualizar</button>
+
+    <!-- Inicio de Leads (planes con embudos): solo los 3 tipos -->
+    <div id="lead-hub" hidden>
+      <div class="hub-grid" id="hub-cards"></div>
+      <button class="btn btn-primario" onclick="abrirLead()">+ Lead</button>
     </div>
-    <div class="temp-resumen" id="temp-resumen"></div>
-    <div class="chips" id="chips-leads"></div>
-    <div class="lista" id="lista-leads"><p class="cargando">Cargando leads…</p></div>
+
+    <!-- Vista de un tipo (o lista simple en el plan Catálogo) -->
+    <div id="lead-vista">
+      <div class="cab-tipo" id="cab-tipo" hidden>
+        <button class="btn" onclick="volverHubLeads()">← Leads</button>
+        <h2 id="cab-tipo-titulo"></h2>
+      </div>
+      <div class="herramientas">
+        <input class="buscar" id="buscar-leads" type="search" placeholder="Buscar nombre, WhatsApp, inmueble, zona…" oninput="pintarLeads()">
+        <button class="btn" onclick="cargarLeads()">Actualizar</button>
+        <button class="btn btn-primario" onclick="abrirLead()">+ Lead</button>
+      </div>
+      <div class="temp-resumen" id="temp-resumen"></div>
+      <div class="chips" id="chips-leads"></div>
+      <div class="lista" id="lista-leads"><p class="cargando">Cargando leads…</p></div>
+    </div>
   </section>
 
   <!-- Requerimientos -->
@@ -452,6 +515,7 @@ main, .lista > * { min-width: 0; max-width: 100%; }
           <div class="archivos-tabs">
             <button class="arch-tab" id="tab-fotos" aria-selected="true"  onclick="verArchTab('fotos')">📷 Fotos</button>
             <button class="arch-tab" id="tab-docs"  aria-selected="false" onclick="verArchTab('docs')">📄 Documentos</button>
+            <button class="arch-tab" id="tab-prop"  aria-selected="false" onclick="verArchTab('prop')" hidden>👤 Propietario</button>
           </div>
 
           <!-- Panel fotos -->
@@ -486,6 +550,11 @@ main, .lista > * { min-width: 0; max-width: 100%; }
             </div>
             <div class="progreso-wrap" id="prog-docs" hidden><div class="progreso-barra" id="prog-docs-b"></div></div>
             <div class="docs-lista" id="docs-lista"></div>
+          </div>
+
+          <!-- Panel propietario (captación propia) -->
+          <div id="panel-prop" class="arch-panel" hidden>
+            <div id="prop-contenido"></div>
           </div>
         </div>
 
@@ -563,6 +632,16 @@ main, .lista > * { min-width: 0; max-width: 100%; }
                oninput="formatearDineroInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();responderComision(false);}">
         <span class="pista">En pesos, ej. 12.000.000. Si no hubo comisión, deja 0.</span>
       </div>
+      <div class="campo">
+        <label for="com-fecha">Fecha de venta</label>
+        <input id="com-fecha" type="date">
+        <span class="pista">Por defecto, hoy. Se pide aunque la comisión sea 0.</span>
+      </div>
+      <div class="campo">
+        <label for="com-notas">Notas del cierre (opcional)</label>
+        <textarea id="com-notas" rows="3" maxlength="600" placeholder="Ej. Lo vendió con Laura Gómez (Inmobiliaria X). Forma de pago: crédito Bancolombia."></textarea>
+        <span class="pista">Se guardan en las notas privadas del inmueble, con la fecha.</span>
+      </div>
     </div>
     <div class="hoja-pie">
       <button class="btn" onclick="cancelarComision()">Cancelar cambio de estado</button>
@@ -573,8 +652,79 @@ main, .lista > * { min-width: 0; max-width: 100%; }
 </div>
 
 <!-- ============================================================
+     MODAL — NUEVO LEAD (a mano: TikTok, WhatsApp, orgánico, referido…)
+     ============================================================ -->
+<div class="capa capa-aviso" id="capa-lead" hidden>
+  <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="nl-titulo">
+    <div class="hoja-cab"><h2 id="nl-titulo">Nuevo lead</h2><button class="cerrar" aria-label="Cerrar" onclick="cerrarLead()">×</button></div>
+    <div class="hoja-cuerpo">
+      <div class="campo" style="margin-bottom:12px">
+        <label>¿Qué busca?</label>
+        <div class="est-chips" id="nl-tipos" style="margin-bottom:0"></div>
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-nombre">Nombre *</label>
+        <input id="nl-nombre" type="text" autocomplete="off" maxlength="80" placeholder="Nombre y apellido">
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-wa">WhatsApp *</label>
+        <input id="nl-wa" type="tel" inputmode="tel" autocomplete="off" maxlength="20" placeholder="300 123 4567">
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-origen">¿De dónde llegó?</label>
+        <select id="nl-origen"></select>
+      </div>
+      <div class="campo" style="margin-bottom:12px" id="nl-op-caja" hidden>
+        <label>El propietario quiere</label>
+        <div class="est-chips" id="nl-op" style="margin-bottom:0"></div>
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-inmueble" id="nl-l-inmueble">Inmueble</label>
+        <input id="nl-inmueble" type="text" autocomplete="off" maxlength="120">
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-presupuesto" id="nl-l-presupuesto">Presupuesto</label>
+        <input id="nl-presupuesto" type="text" autocomplete="off" maxlength="40">
+      </div>
+      <div class="campo" style="margin-bottom:12px">
+        <label for="nl-zona">Zona o barrio</label>
+        <input id="nl-zona" type="text" autocomplete="off" maxlength="80" placeholder="Ej. Valle del Lili">
+      </div>
+      <div class="campo">
+        <label for="nl-nota">Nota</label>
+        <textarea id="nl-nota" rows="2" maxlength="500" placeholder="Ej. Vio el video de TikTok del apto en Pance"></textarea>
+      </div>
+    </div>
+    <div class="hoja-pie">
+      <span class="msg" id="nl-msg"></span>
+      <button class="btn" onclick="cerrarLead()">Cancelar</button>
+      <button class="btn btn-primario" id="nl-guardar" onclick="guardarNuevoLead()">Guardar lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      MODAL — CAMBIAR ESTADO (acción rápida de la tarjeta)
      ============================================================ -->
+<div class="capa capa-aviso" id="capa-salir" hidden>
+  <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="salir-titulo">
+    <div class="hoja-cab"><h2 id="salir-titulo">¿Qué quieres hacer?</h2></div>
+    <div class="hoja-cuerpo"><p style="font-size:13px;color:var(--suave)">Estás en el inicio del panel. Puedes actualizar los datos o salir.</p></div>
+    <div class="hoja-pie">
+      <button class="btn" onclick="salirOpcion('seguir')">Seguir aquí</button>
+      <button class="btn" onclick="salirOpcion('salir')">Salir</button>
+      <button class="btn btn-primario" onclick="salirOpcion('actualizar')">Actualizar</button>
+    </div>
+  </div>
+</div>
+
+<div class="capa capa-aviso" id="capa-prop" hidden onclick="if(event.target===this) cerrarPropSheet()">
+  <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="ps-titulo">
+    <div class="hoja-cab"><h2 id="ps-titulo">Propietario</h2><button class="cerrar" aria-label="Cerrar" onclick="cerrarPropSheet()">×</button></div>
+    <div class="hoja-cuerpo" id="ps-cuerpo"></div>
+  </div>
+</div>
+
 <div class="capa capa-aviso" id="capa-estado" hidden>
   <div class="hoja hoja-mini" role="dialog" aria-modal="true" aria-labelledby="ce-titulo">
     <div class="hoja-cab"><h2>Cambiar estado</h2></div>
@@ -586,6 +736,16 @@ main, .lista > * { min-width: 0; max-width: 100%; }
         <input id="ce-com" type="text" inputmode="numeric" autocomplete="off" placeholder="0"
                oninput="formatearDineroInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();guardarCambioEstado();}">
         <span class="pista">Para tu declaración de renta. Si no hubo comisión, deja 0.</span>
+      </div>
+      <div class="campo" id="ce-fecha-caja" hidden>
+        <label for="ce-fecha">¿Qué día se cerró el negocio?</label>
+        <input id="ce-fecha" type="date">
+        <span class="pista">Por defecto, hoy.</span>
+      </div>
+      <div class="campo" id="ce-notas-caja" hidden>
+        <label for="ce-notas">Notas del cierre (opcional)</label>
+        <textarea id="ce-notas" rows="3" maxlength="600" placeholder="Ej. Lo vendió con Laura Gómez (Inmobiliaria X). Forma de pago: crédito Bancolombia."></textarea>
+        <span class="pista">Se guardan en las notas privadas del inmueble, con la fecha.</span>
       </div>
     </div>
     <div class="hoja-pie">
@@ -601,6 +761,7 @@ main, .lista > * { min-width: 0; max-width: 100%; }
      ============================================================ -->
 <div class="capa capa-img" id="capa-img" hidden>
   <div class="img-vista" role="dialog" aria-modal="true" aria-label="Imagen para estados">
+    <div class="fila-chips" id="img-disenos" aria-label="Diseño de la imagen" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px"></div>
     <img id="img-prev" alt="Vista previa de la imagen">
     <p class="nota">Al compartir, la imagen va con el texto y este enlace a tu catálogo:<br><b id="img-link" style="word-break:break-all"></b><br>Si solo la guardas, usa «Copiar texto» para pegarlo junto a la imagen.</p>
     <div class="botones">
@@ -649,7 +810,9 @@ var S = {
   edicion:    null,  // {fila, huella, iniciales, auto, carpeta}
   edReq:      null,
   filtroInm:  'Disponible',   // por defecto solo Disponibles; '*' = Todos
-  filtroLead: 'Todos',
+  filtroLead: 'Nuevo',
+  tipoLead:   '',             // embudo abierto ('' = pantalla de inicio con los 3 tipos)
+  prop:       { lista: null, cargando: null, error: '' },   // propietarios registrados (se cargan al abrir la pestaña)
   filtroTemp: '',
   filtroReq:  'Activas',
   cargando:   { leads: false, req: false }
@@ -787,6 +950,7 @@ function cargarSesion() {
     S.plan = r.plan || 'catalogo';
     S.planNombre = r.planNombre || 'Catálogo';
     F = r.funciones || {};
+    if (F.propietarios === undefined) F.propietarios = !!F.etapasLeads;   // propietarios: Crecimiento en adelante
     var c = r.config || {};
     CFG.fichaUrl    = c.fichaUrl    || '';
     CFG.ciudad      = c.ciudad      || '';
@@ -964,8 +1128,41 @@ function dineroVista(v) {
   return d === null ? String(v == null ? '' : v) : conMiles(d);
 }
 /** Valor comparable/guardable de un campo: dinero → solo dígitos; el resto → texto recortado. */
+/* ---- Fechas (dd/mm/aaaa, hora de Colombia) ---- */
+/** Suma una nota de cierre al final de las notas privadas, con la fecha del cierre. */
+function notaCierre(previas, nota, fechaDmy) {
+  nota = String(nota || '').replace(/\s+/g, ' ').trim();
+  if (!nota) return String(previas || '');
+  previas = String(previas || '').trim();
+  return (previas ? previas + '\n' : '') + '[Cierre ' + fechaDmy + '] ' + nota;
+}
+function hoyISO() {
+  var p = {};
+  try {
+    new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+  } catch (e) {}
+  if (!p.day) { var d = new Date(); p.year = d.getFullYear(); p.month = ('0' + (d.getMonth() + 1)).slice(-2); p.day = ('0' + d.getDate()).slice(-2); }
+  return p.year + '-' + p.month + '-' + p.day;
+}
+/** Acepta dd/mm/aaaa, aaaa-mm-dd (o ISO largo) y devuelve dd/mm/aaaa ('' si no se entiende). */
+function fechaVista(v) {
+  v = String(v == null ? '' : v).trim();
+  var m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[3] + '/' + m[2] + '/' + m[1];
+  m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) return ('0' + m[1]).slice(-2) + '/' + ('0' + m[2]).slice(-2) + '/' + (m[3].length === 2 ? '20' + m[3] : m[3]);
+  return v;
+}
+/** Links de video: separados por salto de línea, espacio o coma. */
+function _linksVideo(v) {
+  return String(v == null ? '' : v).split(/[\s,;|]+/).map(function(x){ return x.trim(); }).filter(Boolean);
+}
 function valorNormal(clave, v) {
   v = String(v == null ? '' : v).trim();
+  if (clave === 'fechaVenta') return fechaVista(v);
+  if (clave === 'videos') return _linksVideo(v).join('\n');
+  if (clave === 'plazas') { var pz = v.replace(/\D/g, ''); return pz === '' ? '' : String(parseInt(pz, 10)); }
   if (CAMPOS_DINERO.indexOf(clave) !== -1) { var d = soloDigitos(v); if (d !== null) return d; }
   return v;
 }
@@ -1001,19 +1198,95 @@ function histAbrir() {
   if (capaHist) return;
   try { history.pushState({ lcCapa: 1 }, ''); capaHist = true; } catch (e) {}
 }
+var ignorarPop = 0;     // popstate provocados por nuestro propio history.back()
 function histCerrar() {
   if (!capaHist) return;
   capaHist = false;
-  try { history.back(); } catch (e) {}
+  ignorarPop++;
+  try { history.back(); } catch (e) { ignorarPop--; }
 }
-window.addEventListener('popstate', function () {
-  if (!capaHist) return;          // no es una hoja nuestra
+
+/* ---- Pantallas (pestañas y tipo de lead): "atrás" vuelve a la pantalla anterior ----
+   El historial tiene una entrada base y una de inicio; cada pantalla nueva suma una entrada.
+   Estando en el inicio, "atrás" pregunta si actualizar o salir. */
+var navPila = [];       // pantallas anteriores: {pest, tipo}
+var navDeshacer = false;
+function _pantallaActual() { return { pest: _pestanaActual(), tipo: S.tipoLead || '' }; }
+function _pestanaActual() {
+  var r = 'inm';
+  ['inm','leads','req'].forEach(function (k) { if (!document.getElementById('sec-'+k).hidden) r = k; });
+  return r;
+}
+function navEmpujar() {            // llamar ANTES de cambiar de pantalla
+  if (navDeshacer) return;
+  navPila.push(_pantallaActual());
+  try { history.pushState({ lcNav: 1 }, ''); } catch (e) { navPila.pop(); }
+}
+function _mismaPantalla(a, b) { return a && b && a.pest === b.pest && a.tipo === b.tipo; }
+/** Cambia a una pantalla: si es justo la anterior, retrocede en el historial; si no, suma una entrada. */
+function navIr(destino, aplicar) {
+  var ant = navPila[navPila.length - 1];
+  if (_mismaPantalla(ant, destino)) { history.back(); return; }
+  if (_mismaPantalla(_pantallaActual(), destino)) { aplicar(); return; }
+  navEmpujar();
+  aplicar();
+}
+function _restaurarPantalla(p) {
+  navDeshacer = true;
+  try {
+    verPestana(p.pest, true);
+    if (p.pest === 'leads') {
+      if (p.tipo) abrirTipoLead(p.tipo, true); else volverHubLeads(true);
+    }
+  } finally { navDeshacer = false; }
+}
+var navActivo = false;
+function navIniciar() {
+  navActivo = true;
+  try {
+    if (history.state && history.state.lcRoot) return;
+    history.replaceState({ lcBase: 1 }, '');
+    history.pushState({ lcRoot: 1 }, '');
+  } catch (e) {}
+}
+var _salirAbierto = false;
+function preguntarSalir() {
+  if (_salirAbierto) return;
+  _salirAbierto = true;
+  document.getElementById('capa-salir').hidden = false;
+}
+function salirOpcion(op) {
+  document.getElementById('capa-salir').hidden = true;
+  _salirAbierto = false;
+  if (op === 'actualizar') {
+    if (typeof pendientes !== 'undefined' && pendientes > 0) { toast('Espera: se están guardando cambios.'); try { history.pushState({ lcRoot: 1 }, ''); } catch (e) {} return; }
+    location.reload();
+  } else if (op === 'salir') {
+    permitirSalida = true;
+    try { history.back(); } catch (e) {}
+    setTimeout(function () { try { window.close(); } catch (e) {} }, 150);
+  } else {
+    try { history.pushState({ lcRoot: 1 }, ''); } catch (e) {}   // seguir aquí
+  }
+}
+var permitirSalida = false;
+window.addEventListener('popstate', function (ev) {
+  if (ignorarPop > 0) { ignorarPop--; return; }
+  if (permitirSalida || !navActivo) return;
+  if (!capaHist) {                // no es una hoja: es navegación entre pantallas
+    if (!document.getElementById('capa-salir').hidden) { return; }
+    if (navPila.length) { _restaurarPantalla(navPila.pop()); return; }
+    preguntarSalir();             // ya estaba en el inicio
+    return;
+  }
   capaHist = false;               // el navegador ya retrocedió una entrada
   if (!document.getElementById('capa-comision').hidden) {   // pregunta de comisión abierta: cancela el cambio de estado
     cancelarComision(); histAbrir(); return;
   }
   if (!document.getElementById('capa-img').hidden) { cerrarImagen(true); return; }
+  if (!document.getElementById('capa-lead').hidden) { cerrarLead(true); return; }
   if (!document.getElementById('capa-estado').hidden) { cerrarCambioEstado(true); return; }
+  if (!document.getElementById('capa-prop').hidden) { cerrarPropSheet(true); return; }
   var inm = !document.getElementById('capa').hidden;
   var req = !document.getElementById('capa-req').hidden;
   if (inm) {
@@ -1042,7 +1315,8 @@ function toggleSeccion(id) {
 /* ============================================================
    PESTAÑAS PRINCIPALES
    ============================================================ */
-function verPestana(cual) {
+function verPestana(cual, sinHistorial) {
+  if (!sinHistorial && cual !== _pestanaActual()) { navIr({ pest: cual, tipo: cual === 'leads' ? (S.tipoLead || '') : '' }, function () { verPestana(cual, true); }); return; }
   ['inm','leads','req'].forEach(function(k) {
     document.getElementById('tab-'+k).setAttribute('aria-selected', cual===k);
     document.getElementById('sec-'+k).hidden = cual!==k;
@@ -1061,6 +1335,7 @@ function cargarInmuebles() {
     document.getElementById('num-inm').textContent = S.inm.filas.length;
     pintarChipsInm();
     pintarInmuebles();
+    if (F.propietarios && !S.prop.lista && !S.prop.cargando) _cargarPropietarios().then(pintarInmuebles, function(){});   // nombres en las tarjetas
     if (S.leads) pintarLeads(); // para que los leads muestren el encargado del inmueble
   }).catch(function (e) {
     document.getElementById('lista-inm').innerHTML = '<div class="mensaje error">'+esc(e.message)+'</div>';
@@ -1080,10 +1355,12 @@ var REGLAS_COLUMNAS = [
   ['ciudad',        function(h){ return h.indexOf('ciudad') !== -1 || h.indexOf('municipio') !== -1; }],
   ['precio',        function(h){ return h.indexOf('precio') === 0; }],
   ['canon',         function(h){ return h.indexOf('canon') === 0 || (h.indexOf('arriendo') === 0 && h.indexOf('precio') === -1); }],
+  ['areaPrivada',   function(h){ return h.indexOf('area') === 0 && h.indexOf('privad') !== -1; }],   // antes que 'area'
   ['area',          function(h){ return h.indexOf('area') === 0; }],
   ['habitaciones',  function(h){ return h.indexOf('habitacion') === 0 || h.indexOf('alcoba') === 0; }],
   ['banos',         function(h){ return h.indexOf('bano') === 0; }],
   ['parqueadero',   function(h){ return h.indexOf('parqueadero') === 0 || h.indexOf('garaje') === 0; }],
+  ['plazas',        function(h){ return h.indexOf('plaza') === 0; }],
   ['piso',          function(h){ return (h.indexOf('piso') !== -1 && h.indexOf('precio') === -1) || h.indexOf('nivel') === 0; }],
   ['estrato',       function(h){ return h.indexOf('estrato') === 0; }],
   ['administracion',function(h){ return h.indexOf('administracion') === 0 || h.indexOf('admon') === 0; }],
@@ -1098,7 +1375,10 @@ var REGLAS_COLUMNAS = [
   ['celular',       function(h){ return h.indexOf('celular') === 0; }],
   ['notasPrivadas', function(h){ return h.indexOf('nota') === 0; }],
   ['documentos',    function(h){ return h.indexOf('documento') === 0; }],
-  ['comision',      function(h){ return h.indexOf('comision') === 0; }]
+  ['comision',      function(h){ return h.indexOf('comision') === 0; }],
+  ['fechaVenta',    function(h){ return h.indexOf('fecha') === 0; }],
+  ['videos',        function(h){ return h.indexOf('video') === 0; }],
+  ['propietarioId', function(h){ return h.indexOf('propietario') === 0; }]
 ];
 
 function _procesarPortafolio(r) {
@@ -1161,8 +1441,9 @@ function pintarInmuebles() {
   var q = norm(document.getElementById('buscar-inm').value);
   var filas = S.inm.filas.filter(function(f) {
     if (S.filtroInm !== '*' && (f.estado||'Sin estado') !== S.filtroInm) return false;
-    return !q || norm([f.tipo,f.barrio,f.ciudad,f.proyecto,f.id,f.encargado].join(' ')).indexOf(q)!==-1;
-  });
+    var po = _propDeInm(f);
+    return !q || norm([f.tipo,f.barrio,f.ciudad,f.proyecto,f.id,f.encargado, po ? po.nombre+' '+po.whatsapp : ''].join(' ')).indexOf(q)!==-1;
+  }).sort(function(a, b) { return (b._fila || 0) - (a._fila || 0); });   // más recientes (últimas filas) primero
   var cont = document.getElementById('lista-inm');
   if (!filas.length) { cont.innerHTML = '<p class="vacio">No hay inmuebles con ese filtro.</p>'; return; }
   cont.innerHTML = filas.slice(0,300).map(function(f) {
@@ -1172,6 +1453,7 @@ function pintarInmuebles() {
       (f._img ? '<img class="inm-img" referrerpolicy="no-referrer" loading="lazy" src="'+esc(f._img)+'" alt="">' : '<span class="inm-sinfoto">Sin foto</span>') +
       '<span class="info"><div class="tit">'+esc([f.tipo,f.barrio,f.ciudad].filter(Boolean).join(' · ')||'Sin datos')+'</div>' +
       '<div class="sub">'+esc([f.proyecto,det].filter(Boolean).join(' — '))+'</div>' +
+      (function(){ var po = _propDeInm(f); return po ? '<div class="inm-prop" data-prop="'+esc(po.id)+'" title="Ver propietario">👤 '+esc(po.nombre)+'</div>' : ''; })() +
       (precio ? '<div class="precio-m">'+esc(precio)+'</div>' : '') +
       (f.estado ? '<span class="etq'+(/disponible/i.test(f.estado)?' disp':'')+'">'+esc(f.estado)+'</span>' : '') +
       (/propio/i.test(f.captacion||'') ? '<span class="etq propia">Propio</span>' : '') +
@@ -1194,6 +1476,9 @@ function pintarInmuebles() {
       else if (acc === 'imagen') generarImagenEstados(fila, b);
     };
   });
+  cont.querySelectorAll('.inm-prop').forEach(function(b){
+    b.onclick = function(ev){ ev.stopPropagation(); abrirPropSheet(b.dataset.prop); };
+  });
 }
 
 /* ============================================================
@@ -1212,6 +1497,8 @@ function abrirCambioEstado(fila) {
   document.getElementById('ce-titulo').textContent = _tituloInm(f);
   document.getElementById('ce-msg').textContent = '';
   document.getElementById('ce-com').value = conMiles(soloDigitos(f.comision || '') || '');
+  document.getElementById('ce-fecha').value = hoyISO();
+  document.getElementById('ce-notas').value = '';
   _pintarChipsEstado();
   document.getElementById('capa-estado').hidden = false;
   histAbrir();
@@ -1226,6 +1513,8 @@ function _pintarChipsEstado() {
   });
   var pideCom = ESTADOS_CIERRE.test(_ce.elegido) && norm(_ce.elegido) !== norm(_ce.original);
   document.getElementById('ce-com-caja').hidden = !pideCom;
+  document.getElementById('ce-fecha-caja').hidden = !pideCom;
+  document.getElementById('ce-notas-caja').hidden = !pideCom;
   if (pideCom) setTimeout(function(){ var i = document.getElementById('ce-com'); i.focus(); i.select(); }, 50);
 }
 function cerrarCambioEstado(desdeHistorial) {
@@ -1242,12 +1531,18 @@ function guardarCambioEstado() {
   if (ESTADOS_CIERRE.test(_ce.elegido)) {
     // La pregunta de la comisión es obligatoria; el valor no (puede ser 0).
     campos.comision = soloDigitos(document.getElementById('ce-com').value) || '0';
+    // También se pide la fecha de venta (por defecto hoy), aunque la comisión sea 0.
+    campos.fechaVenta = fechaVista(document.getElementById('ce-fecha').value || hoyISO());
+    var nc = document.getElementById('ce-notas').value;
+    var fPrev = _inmPorFila(_ce.fila);
+    if (nc.trim()) campos.notasPrivadas = notaCierre(fPrev && fPrev.notasPrivadas, nc, campos.fechaVenta);
   }
   var fila = _ce.fila, estado = _ce.elegido;
   var f = _inmPorFila(fila);
   cerrarCambioEstado();
   toast('Estado actualizado a ' + estado + '.');
-  if (f) { f.estado = estado; if (campos.comision !== undefined) f.comision = campos.comision; pintarChipsInm(); pintarInmuebles(); }
+  if (f) { f.estado = estado; if (campos.comision !== undefined) { f.comision = campos.comision; f.fechaVenta = campos.fechaVenta; }
+    if (campos.notasPrivadas !== undefined) f.notasPrivadas = campos.notasPrivadas; pintarChipsInm(); pintarInmuebles(); }
   enCola(api({ accion: 'guardarInmueble', fila: fila, campos: campos })).then(function(r){
     if (!r.ok) throw new Error(r.error || 'Error al guardar');
     return cargarInmuebles();
@@ -1314,10 +1609,11 @@ function generarImagenEstados(fila, boton) {
   var cols = FichaVista.colores('#0f5b4f');
   var dominio = 'miraleads.pro';
   try { dominio = new URL(CFG.catalogoUrl).host; } catch (e) {}
-  FichaImagen.generar(FichaVista.construirVista(f), {
-    fotoUrls: fotoUrls, colores: cols, dominio: dominio, iconoSvg: FichaVista.iconoSvg
-  }).then(function(blob){
-    _mostrarImagen(blob, f, link);
+  // La foto se carga una sola vez; cambiar de diseño solo vuelve a dibujar.
+  FichaImagen.cargarFoto(fotoUrls).then(function(foto){
+    _imgCtx = { f: f, link: link, vista: FichaVista.construirVista(f),
+                opts: { foto: foto, colores: cols, dominio: dominio, iconoSvg: FichaVista.iconoSvg } };
+    return _dibujarImagen(_disenoImagen());
   }).catch(function(e){
     console.error('[panel] imagen:', e);
     toast('No se pudo crear la imagen. Intenta de nuevo.', 6000);
@@ -1325,7 +1621,41 @@ function generarImagenEstados(fila, boton) {
 }
 
 var _img = null;  // { url, archivo, texto }
-function _mostrarImagen(blob, f, link) {
+var _imgCtx = null;   // datos para volver a dibujar con otro diseño
+function _disenoImagen() {
+  var d = '';
+  try { d = localStorage.getItem('lc_diseno_img') || ''; } catch (e) {}
+  return FichaImagen.DISENOS.some(function(x){ return x.id === d; }) ? d : 'clasico';
+}
+function _dibujarImagen(diseno) {
+  var ctx = _imgCtx; if (!ctx) return Promise.resolve();
+  return FichaImagen.generar(ctx.vista, Object.assign({ diseno: diseno }, ctx.opts)).then(function(blob){
+    if (_imgCtx !== ctx) return;      // se cerró el visor mientras se dibujaba
+    _mostrarImagen(blob, ctx.f, ctx.link, diseno);
+  });
+}
+function elegirDisenoImagen(d) {
+  if (!_imgCtx || d === _disenoImagenActual) return;
+  try { localStorage.setItem('lc_diseno_img', d); } catch (e) {}
+  var prev = document.getElementById('img-prev'); prev.style.opacity = '.4';
+  document.querySelectorAll('#img-disenos button').forEach(function(b){ b.disabled = true; });
+  _dibujarImagen(d).catch(function(e){
+    console.error('[panel] imagen:', e); toast('No se pudo cambiar el diseño.', 5000);
+  }).then(function(){
+    prev.style.opacity = '';
+    document.querySelectorAll('#img-disenos button').forEach(function(b){ b.disabled = false; });
+  });
+}
+var _disenoImagenActual = '';
+function _pintarDisenosImagen(actual) {
+  _disenoImagenActual = actual;
+  document.getElementById('img-disenos').innerHTML = FichaImagen.DISENOS.map(function(x){
+    return '<button type="button" class="chip" aria-pressed="'+(x.id===actual)+'" onclick="elegirDisenoImagen(\''+x.id+'\')">'+esc(x.nombre)+'</button>';
+  }).join('');
+}
+function _mostrarImagen(blob, f, link, diseno) {
+  if (_img) URL.revokeObjectURL(_img.url);
+  var yaAbierto = !document.getElementById('capa-img').hidden;
   var nombre = 'ficha-' + String(f.id || 'inmueble').toLowerCase().replace(/[^a-z0-9_-]/g, '') + '.png';
   var archivo = new File([blob], nombre, { type: 'image/png' });
   var url = URL.createObjectURL(blob);
@@ -1333,6 +1663,8 @@ function _mostrarImagen(blob, f, link) {
   document.getElementById('img-prev').src = url;
   document.getElementById('img-link').textContent = link;
   document.getElementById('img-compartir').hidden = !(navigator.canShare && navigator.canShare({ files: [archivo] }));
+  _pintarDisenosImagen(diseno);
+  if (yaAbierto) return;
   document.getElementById('capa-img').hidden = false;
   document.body.style.overflow = 'hidden';
   histAbrir();
@@ -1341,6 +1673,7 @@ function cerrarImagen(desdeHistorial) {
   document.getElementById('capa-img').hidden = true;
   document.body.style.overflow = '';
   if (_img) { URL.revokeObjectURL(_img.url); _img = null; }
+  _imgCtx = null;
   if (!desdeHistorial) histCerrar();
 }
 function imagenCompartir() {
@@ -1363,9 +1696,9 @@ function imagenCopiarTexto() {
 /* ============================================================
    INMUEBLES — FORMULARIO
    ============================================================ */
-var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','link'];
+var CAMPOS_PUBLICOS = ['tipo','proyecto','barrio','ciudad','precio','canon','area','areaPrivada','habitaciones','banos','parqueadero','plazas','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','videos','link'];
 var CAMPOS_PRIVADOS = ['encargado','celular','notasPrivadas'];
-var CAMPOS_COMISION = ['comision'];
+var CAMPOS_COMISION = ['comision','fechaVenta'];
 var CAMPOS_READONLY = ['id'];
 
 var OPCIONES = {
@@ -1379,6 +1712,8 @@ var OPCIONES = {
 };
 
 function abrirInmueble(fila) {
+  _pp = { modo: 'auto', editId: '', q: '', pre: null };
+  verArchTab('fotos');
   document.getElementById('hoja-mensaje').innerHTML = '';
   document.getElementById('pie-msg').textContent = '';
   document.getElementById('imp-url').value = '';
@@ -1446,7 +1781,7 @@ function _renderCampos(contenedorId, claves, vals, privados) {
   cont.innerHTML = claves.map(function(clave) {
     var v = String(vals[clave]||'').trim();
     var titulo = _tituloLabel(clave);
-    var ancho = ['observaciones','notasPrivadas','link','fotos'].indexOf(clave)!==-1 ? ' ancho' : '';
+    var ancho = ['observaciones','notasPrivadas','link','fotos','videos'].indexOf(clave)!==-1 ? ' ancho' : '';
     var readonly = CAMPOS_READONLY.indexOf(clave)!==-1;
     var ops = OPCIONES[clave];
     var control;
@@ -1458,6 +1793,8 @@ function _renderCampos(contenedorId, claves, vals, privados) {
       control = '<textarea id="f-'+clave+'">'+esc(v)+'</textarea>';
     } else if (clave === 'observaciones') {
       control = '<textarea id="f-'+clave+'">'+esc(v)+'</textarea>';
+    } else if (clave === 'videos') {
+      control = '<textarea id="f-'+clave+'" rows="3" placeholder="https://www.youtube.com/watch?v=…&#10;https://www.tiktok.com/@tu_usuario/video/…" autocapitalize="off" spellcheck="false">'+esc(v)+'</textarea>';
     } else if (clave === 'ciudad') {
       var vc = v || ((S.edicion && !S.edicion.fila) ? _ciudadPorDefecto() : '');
       control = '<input id="f-'+clave+'" type="text" list="lista-ciudades" autocomplete="off" value="'+esc(vc)+'">' +
@@ -1465,7 +1802,7 @@ function _renderCampos(contenedorId, claves, vals, privados) {
     } else if (ops) {
       var optHtml = '<option value=""></option>' + ops.map(function(o){ return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>'; }).join('');
       control = '<select id="f-'+clave+'">'+optHtml+'</select>';
-    } else if (clave==='area'||clave==='habitaciones'||clave==='banos'||clave==='piso'||clave==='estrato') {
+    } else if (clave==='area'||clave==='habitaciones'||clave==='banos'||clave==='piso'||clave==='estrato'||clave==='plazas'||clave==='areaPrivada') {
       control = '<input id="f-'+clave+'" type="text" inputmode="decimal" value="'+esc(v)+'">';
     } else {
       control = '<input id="f-'+clave+'" type="text" value="'+esc(v)+'">';
@@ -1508,7 +1845,13 @@ function _visibilidadCampos() {
   var tipo = valorCampo('tipo');
   var admin = !tipo || /apartamento|apartaestudio|casa en conjunto/i.test(tipo);
   var asc   = !tipo || /apartamento|apartaestudio/i.test(tipo);
-  [['administracion', admin], ['ascensor', asc]].forEach(function(par){
+  var parq = valorCampo('parqueadero');
+  var plz = !/^no/i.test(parq);   // "No tiene" → no se piden plazas
+  // Plazas, Área privada y Videos solo se piden si la hoja ya tiene esa columna (el backend la crea al
+  // instalarse). Así, un agente con backend viejo no llena datos que no se guardarían.
+  var hayCol = function(k) { return !S.inm || !S.inm.idx || S.inm.idx[k] !== undefined; };
+  [['administracion', admin], ['ascensor', asc], ['plazas', plz && hayCol('plazas')],
+   ['areaPrivada', hayCol('areaPrivada')], ['videos', hayCol('videos')]].forEach(function(par){
     var div = document.querySelector('#campos-publicos .campo[data-clave="'+par[0]+'"]');
     if (div) div.style.display = par[1] ? '' : 'none';
   });
@@ -1518,13 +1861,13 @@ function _tituloLabel(clave) {
   var m = {
     tipo:'Tipo', proyecto:'Proyecto / Nombre', barrio:'Barrio / Zona',
     precio:'Precio de venta', canon:'Precio arriendo (mes)',
-    area:'Área m²', habitaciones:'Habitaciones', banos:'Baños',
-    parqueadero:'Parqueadero(s)', piso:'Piso', estrato:'Estrato',
+    area:'Área construida m²', areaPrivada:'Área privada m²', habitaciones:'Habitaciones', banos:'Baños',
+    parqueadero:'Parqueadero', plazas:'Plazas (carros)', piso:'Piso', estrato:'Estrato',
     ciudad:'Ciudad', administracion:'Administración (COP/mes)', ascensor:'Ascensor',
     estado:'Estado', servicio:'Servicio', credito:'Aplica crédito',
-    observaciones:'Observaciones públicas', link:'Link ficha externa',
+    observaciones:'Observaciones públicas', videos:'Videos (solo tu catálogo)', link:'Link ficha externa',
     captacion:'Captación', encargado:'Encargado', celular:'Celular encargado',
-    notasPrivadas:'Notas privadas', documentos:'Documentos', comision:'Comisión (COP)',
+    notasPrivadas:'Notas privadas', documentos:'Documentos', comision:'Comisión (COP)', fechaVenta:'Fecha de venta (dd/mm/aaaa)',
     id:'ID (automático)'
   };
   return m[clave] || clave;
@@ -1537,9 +1880,13 @@ function _pista(clave) {
     ciudad: 'Cali, Palmira, Jamundí… escribe otra si hace falta.',
     administracion: 'Solo conjunto cerrado. Déjalo vacío si no paga administración (ej. 350.000).',
     ascensor: 'Solo apartamentos.',
+    areaPrivada: 'Opcional. Apartamentos y casas en propiedad horizontal. Si la llenas, el catálogo muestra "Área construida" y "Área privada".',
+    plazas: 'Cuántos carros caben (ej. 2). Se ve en tu catálogo y en la ficha para colegas.',
+    videos: 'Hasta 3 links, uno por línea (YouTube, TikTok, Instagram…). Se ven SOLO en tu catálogo; la ficha para colegas no los muestra.',
     observaciones: 'Pública — la ven los visitantes del catálogo. Teléfonos y correos se ocultan solos.',
     notasPrivadas: 'Privada — solo la ven los administradores. Puedes anotar saldo de hipoteca, condiciones, etc.',
     comision: 'En pesos (ej. 12.000.000). Puede ser 0.',
+    fechaVenta: 'Día en que se cerró el negocio. Por defecto, hoy.',
     id: 'El sistema lo asigna automáticamente.'
   };
   return m[clave] || '';
@@ -1582,6 +1929,8 @@ function preguntarComision(estado, alResponder, alCancelar) {
   var campo = document.getElementById('f-comision');
   var inp = document.getElementById('com-valor');
   inp.value = campo ? dineroVista(campo.value) : '';
+  document.getElementById('com-fecha').value = hoyISO();
+  document.getElementById('com-notas').value = '';
   document.getElementById('com-texto').textContent =
     'Marcaste este inmueble como ' + estado + '. Anota cuánto fue la comisión (para tu declaración de renta).';
   document.getElementById('capa-comision').hidden = false;
@@ -1593,6 +1942,10 @@ function responderComision(sinComision) {
   var d = sinComision ? '0' : (soloDigitos(document.getElementById('com-valor').value) || '0');
   var campo = document.getElementById('f-comision');
   if (campo) campo.value = conMiles(d);
+  var cf = document.getElementById('f-fechaVenta');
+  if (cf) cf.value = fechaVista(document.getElementById('com-fecha').value || hoyISO());
+  var nn = document.getElementById('f-notasPrivadas');
+  if (nn) nn.value = notaCierre(nn.value, document.getElementById('com-notas').value, fechaVista(document.getElementById('com-fecha').value || hoyISO()));
   S.edicion.comisionRespondida = cb.estado;
   cerrarComision();
   _mostrarComision(); marcarCambios();
@@ -1643,6 +1996,7 @@ function marcarCambios() {
   var ed = S.edicion;
   if (!ed) return;
   _visibilidadCampos();
+  _tabPropVisible();
   var n = 0;
   var todos = CAMPOS_PUBLICOS.concat(CAMPOS_PRIVADOS).concat(CAMPOS_COMISION);
   todos.forEach(function(clave){
@@ -1654,6 +2008,7 @@ function marcarCambios() {
     if (div) div.classList.toggle('cambiado', cambiado);
     if (cambiado) n++;
   });
+  if (_propCambio() !== null) n++;
   _pintarFotos();
   document.getElementById('pie-msg').textContent = n ? n+' campo(s) con cambios' : (S.edicion.fila?'Sin cambios':'');
 }
@@ -1675,6 +2030,9 @@ function cambiosActuales() {
   var docsActuales = _listaDocs().join('\n');
   var docsOrig = String((S.edicion&&S.edicion.vals&&S.edicion.vals.documentos)||'').trim();
   if (docsActuales !== docsOrig) { cambios.documentos = docsActuales; n++; }
+  // Propietario vinculado (pestaña Propietario): '' = quitar el vínculo
+  var pc = _propCambio();
+  if (pc !== null) { cambios.propietarioId = pc; n++; }
   // Captación: no tiene campo propio en el formulario (se elige en la pantalla
   // "¿De quién es este inmueble?" al crear), así que se incluye solo al crear uno nuevo.
   if (!S.edicion.fila && S.edicion.vals && S.edicion.vals.captacion) {
@@ -1698,6 +2056,17 @@ function guardarInmueble() {
     document.getElementById('hoja-mensaje').innerHTML = '<div class="mensaje error">Elige un Estado antes de guardar (Disponible, Reservado, Vendido, Arrendado o No disponible).</div>';
     estadoEl.focus();
     return;
+  }
+  var vd = document.getElementById('f-videos');
+  if (vd) {
+    var links = _linksVideo(vd.value);
+    var malo = links.filter(function(u){ return !/^https:\/\/[^\s\/]+\.[^\s]+/i.test(u); })[0];
+    if (malo || links.length > 3) {
+      document.getElementById('hoja-mensaje').innerHTML = '<div class="mensaje error">' +
+        (links.length > 3 ? 'Máximo 3 links de video.' : 'El link de video «' + esc(malo.slice(0, 60)) + '» no es válido: debe empezar por https://') + '</div>';
+      vd.focus();
+      return;
+    }
   }
   var estadoNuevo = estadoEl ? estadoEl.value.trim() : '';
   if (S.edicion && ESTADOS_CIERRE.test(estadoNuevo) &&
@@ -1799,6 +2168,335 @@ function _pintarFotos() {
   });
 }
 
+
+/* ============================================================
+   PROPIETARIOS — pestaña dentro del inmueble (captación propia)
+   Un propietario por inmueble; los datos viven en la pestaña "Propietarios" de la hoja y el
+   inmueble guarda solo su ID (columna privada "Propietario ID"). Al vincular se copian
+   nombre y WhatsApp a Encargado / Celular para que lo ya existente siga funcionando.
+   ============================================================ */
+var _pp = { modo: 'auto', editId: '', q: '', pre: null };   // modo: auto | form
+
+function _tabPropVisible() {
+  var tab = document.getElementById('tab-prop'); if (!tab) return;
+  var cap = S.edicion && S.edicion.vals && S.edicion.vals.captacion;
+  var vis = !!F.propietarios && !!S.edicion && !/colega/i.test(String(cap||''));
+  tab.hidden = !vis;
+  if (!vis && !document.getElementById('panel-prop').hidden) verArchTab('fotos');
+}
+
+/** null = sin cambio; '' = quitar el vínculo; 'PR0001' = vincular ese propietario. */
+function _propCambio() {
+  var ed = S.edicion; if (!ed || ed.propId === undefined) return null;
+  var orig = String((ed.vals && ed.vals.propietarioId) || '').trim();
+  return ed.propId !== orig ? ed.propId : null;
+}
+function _propIdActual() {
+  var ed = S.edicion; if (!ed) return '';
+  return String(ed.propId !== undefined ? ed.propId : ((ed.vals && ed.vals.propietarioId) || '')).trim();
+}
+function _propPorId(id) {
+  return ((S.prop.lista || []).filter(function(o){ return o.id === id; })[0]) || null;
+}
+
+function _cargarPropietarios(forzar) {
+  var p = S.prop;
+  if (p.lista && !forzar) return Promise.resolve(p.lista);
+  if (p.cargando) return p.cargando;
+  p.error = '';
+  var pr = api({ accion: 'leerPropietarios' }).then(function(r){
+    if (!r.ok) throw new Error(r.error || 'Error');
+    p.lista = r.filas || [];
+    return p.lista;
+  });
+  p.cargando = pr;
+  pr.then(function(){ p.cargando = null; }, function(e){ p.cargando = null; p.error = e.message; });
+  return pr;
+}
+
+function _pintarPropietarioTab() {
+  var cont = document.getElementById('prop-contenido');
+  if (!cont || !S.edicion) return;
+  if (!S.prop.lista) {
+    if (S.prop.error) {
+      cont.innerHTML = '<div class="mensaje error">'+esc(S.prop.error)+'</div><button class="btn" onclick="S.prop.error=\'\';_pintarPropietarioTab()">Reintentar</button>';
+      return;
+    }
+    cont.innerHTML = '<p class="cargando" style="padding:14px 0">Cargando propietarios…</p>';
+    _cargarPropietarios().then(_pintarPropietarioTab, _pintarPropietarioTab);
+    return;
+  }
+  if (_pp.modo === 'form') { _pintarPropForm(cont); return; }
+  var id = _propIdActual();
+  if (id) { _pintarPropTarjeta(cont, id); return; }
+  _pintarPropBuscar(cont);
+}
+
+function _pintarPropBuscar(cont) {
+  var enc = valorCampo('encargado'), cel = valorCampo('celular');
+  var legado = (enc || cel)
+    ? '<button type="button" class="btn" onclick="propNuevo({nombre:valorCampo(\'encargado\'),whatsapp:valorCampo(\'celular\')})">Convertir «'+esc(enc||cel)+'» en propietario</button>'
+    : '';
+  cont.innerHTML =
+    '<div class="campo"><label for="pp-q">Buscar propietario</label>'+
+    '<input id="pp-q" type="search" autocomplete="off" placeholder="Nombre o WhatsApp…" value="'+esc(_pp.q)+'" oninput="_pp.q=this.value;_pintarPropResultados()"></div>'+
+    '<div class="prop-res" id="pp-res"></div>'+
+    '<div class="prop-acc" style="margin-top:0"><button type="button" class="btn btn-primario" onclick="propNuevo()">+ Nuevo propietario</button>'+legado+'</div>';
+  _pintarPropResultados();
+}
+
+function _pintarPropResultados() {
+  var el = document.getElementById('pp-res'); if (!el) return;
+  var q = norm(_pp.q), qd = q.replace(/\D/g,'');
+  var lista = (S.prop.lista || []).filter(function(o){
+    if (!q) return true;
+    return norm(o.nombre).indexOf(q) !== -1 || (qd.length >= 3 && String(o.whatsapp).replace(/\D/g,'').indexOf(qd) !== -1);
+  }).slice(0, 8);
+  if (!(S.prop.lista||[]).length) { el.innerHTML = '<p class="prop-vacio">Aún no tienes propietarios registrados.</p>'; return; }
+  if (!lista.length) { el.innerHTML = '<p class="prop-vacio">Ninguno coincide. Puedes crearlo con «+ Nuevo propietario».</p>'; return; }
+  el.innerHTML = lista.map(function(o){
+    return '<button type="button" data-id="'+esc(o.id)+'"><span class="n">'+esc(o.nombre)+'</span><span class="t">'+esc(o.whatsapp)+' · '+esc(o.id)+'</span></button>';
+  }).join('');
+  el.querySelectorAll('button').forEach(function(b){ b.onclick = function(){ vincularPropietario(b.dataset.id); }; });
+}
+
+function _pintarPropTarjeta(cont, id) {
+  var o = _propPorId(id), ed = S.edicion;
+  if (!o) {
+    cont.innerHTML = '<div class="mensaje error">El propietario vinculado ('+esc(id)+') ya no existe en tu lista.</div>'+
+      '<div class="prop-acc"><button type="button" class="btn" onclick="propQuitar()">Quitar vínculo</button></div>';
+    return;
+  }
+  var wa = waUrl(o.whatsapp);
+  var otros = (S.inm && S.inm.filas || []).filter(function(x){ return String(x.propietarioId||'').trim() === id && x._fila !== ed.fila; });
+  var otrosTxt = otros.length
+    ? 'Otros inmuebles de este propietario ('+otros.length+'): '+otros.slice(0,6).map(function(x){ return esc([x.tipo,x.barrio].filter(Boolean).join(' · ')||x.id)+(x.id?' ('+esc(x.id)+')':''); }).join(', ')
+    : 'Este es su único inmueble registrado.';
+  cont.innerHTML =
+    '<div class="prop-card">'+
+      '<div class="prop-nom">'+esc(o.nombre)+' <span class="etq-tipo">'+esc(o.id)+'</span></div>'+
+      '<div class="prop-dato">📱 '+(wa?'<a target="_blank" rel="noopener" href="'+esc(wa)+'">'+esc(o.whatsapp)+'</a>':esc(o.whatsapp))+'</div>'+
+      (o.correo?'<div class="prop-dato">✉️ '+esc(o.correo)+'</div>':'')+
+      (o.documento?'<div class="prop-dato">🪪 '+esc(o.documento)+'</div>':'')+
+      (o.notas?'<div class="prop-notas">'+esc(o.notas)+'</div>':'')+
+      '<div class="prop-otros">'+otrosTxt+'</div>'+
+      '<div class="prop-acc">'+
+        (wa?'<a class="btn" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
+        '<button type="button" class="btn" onclick="propEditar()">Editar datos</button>'+
+        '<button type="button" class="btn" onclick="propQuitar()">Cambiar / quitar</button>'+
+      '</div>'+
+    '</div>'+
+    '<p class="prop-vacio" style="padding-bottom:0">Solo lo ven los administradores. No sale en el catálogo ni en la ficha.</p>';
+}
+
+function _pintarPropForm(cont) {
+  var pre = _pp.pre || {};
+  cont.innerHTML =
+    '<div class="prop-form">'+
+    '<div class="campo"><label for="pp-nombre">Nombre *</label><input id="pp-nombre" type="text" autocomplete="off" maxlength="80" value="'+esc(pre.nombre||'')+'"></div>'+
+    '<div class="campo"><label for="pp-wa">WhatsApp *</label><input id="pp-wa" type="tel" inputmode="tel" autocomplete="off" maxlength="20" value="'+esc(pre.whatsapp||'')+'" placeholder="300 123 4567"></div>'+
+    '<div class="campo"><label for="pp-correo">Correo</label><input id="pp-correo" type="email" autocomplete="off" maxlength="80" value="'+esc(pre.correo||'')+'"></div>'+
+    '<div class="campo"><label for="pp-doc">Documento de identidad (opcional)</label><input id="pp-doc" type="text" autocomplete="off" maxlength="30" value="'+esc(pre.documento||'')+'"><span class="pista">Útil para autorizaciones y contratos. Es privado.</span></div>'+
+    '<div class="campo"><label for="pp-notas">Notas</label><textarea id="pp-notas" rows="3" maxlength="2000" placeholder="Ej. Apoderado: Camilo Henao (300 555 0199). Poder notarial vigente. Prefiere que lo llamen en la tarde.">'+esc(pre.notas||'')+'</textarea></div>'+
+    '<div class="prop-acc" style="margin-top:0"><span class="msg" id="pp-msg" style="flex:1;font-size:13px;color:var(--alerta)"></span>'+
+      '<button type="button" class="btn" onclick="propCancelar()">Cancelar</button>'+
+      '<button type="button" class="btn btn-primario" id="pp-guardar" onclick="guardarPropForm()">'+(_pp.editId?'Guardar cambios':'Guardar y vincular')+'</button></div>'+
+    '</div>';
+  setTimeout(function(){ var i = document.getElementById(pre.nombre?'pp-notas':'pp-nombre'); if (i) i.focus(); }, 50);
+}
+
+function propNuevo(pre) { _pp.modo = 'form'; _pp.editId = ''; _pp.pre = pre || null; _pintarPropietarioTab(); }
+function propEditar() {
+  var o = _propPorId(_propIdActual()); if (!o) return;
+  _pp.modo = 'form'; _pp.editId = o.id; _pp.pre = o; _pintarPropietarioTab();
+}
+function propCancelar() { _pp.modo = 'auto'; _pp.editId = ''; _pp.pre = null; _pintarPropietarioTab(); }
+function propQuitar() { if (!S.edicion) return; S.edicion.propId = ''; _pp.q = ''; marcarCambios(); _pintarPropietarioTab(); }
+
+function vincularPropietario(id) {
+  var o = _propPorId(id); if (!o || !S.edicion) return;
+  S.edicion.propId = id;
+  var e = document.getElementById('f-encargado'), c = document.getElementById('f-celular');
+  if (e) e.value = o.nombre;
+  if (c) c.value = o.whatsapp;
+  _pp.modo = 'auto'; _pp.q = '';
+  marcarCambios();
+  _pintarPropietarioTab();
+}
+
+function guardarPropForm() {
+  var v = function(k){ return document.getElementById('pp-'+k).value.trim(); };
+  var msg = document.getElementById('pp-msg');
+  var wa = v('wa').replace(/\D/g,'');
+  if (!v('nombre')) { msg.textContent = 'Escribe el nombre.'; document.getElementById('pp-nombre').focus(); return; }
+  if (wa.length < 7) { msg.textContent = 'El WhatsApp debe tener al menos 7 dígitos.'; document.getElementById('pp-wa').focus(); return; }
+  msg.textContent = '';
+  var editId = _pp.editId;
+  var btn = document.getElementById('pp-guardar');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  api({ accion: 'guardarPropietario', id: editId, nombre: v('nombre'), whatsapp: wa, correo: v('correo'),
+        documento: v('doc'), notas: document.getElementById('pp-notas').value, origen: 'Inmueble' }).then(function(r){
+    if (r.duplicado) {
+      var ex = r.existente || {};
+      if (confirm('Ya tienes a "'+(ex.nombre||'un propietario')+'" ('+(ex.id||'')+') con ese WhatsApp.\n\n¿Usar el que ya existe?\n\nAceptar = usarlo · Cancelar = seguir editando')) {
+        return _cargarPropietarios(true).then(function(){ vincularPropietario(ex.id); });
+      }
+      throw new Error('Cambia el WhatsApp o usa el propietario existente.');
+    }
+    if (!r.ok) throw new Error(r.error || 'Error');
+    var o = r.propietario, lista = S.prop.lista || (S.prop.lista = []), ya = false;
+    for (var i = 0; i < lista.length; i++) { if (lista[i].id === o.id) { lista[i] = o; ya = true; } }
+    if (!ya) lista.push(o);
+    toast(editId ? 'Propietario actualizado.' : 'Propietario creado y vinculado.');
+    _pp.modo = 'auto'; _pp.editId = ''; _pp.pre = null;
+    if (editId && !S.edicion) return;
+    vincularPropietario(o.id);   // al crear queda vinculado; al editar se refrescan también Encargado / Celular
+  }).catch(function(e){
+    var m = document.getElementById('pp-msg'); if (m) m.textContent = e.message;
+    var b = document.getElementById('pp-guardar'); if (b) { b.disabled = false; b.textContent = editId ? 'Guardar cambios' : 'Guardar y vincular'; }
+  });
+}
+
+/* ============================================================
+   PROPIETARIOS — desde un lead (B) y ficha del propietario (C)
+   ============================================================ */
+function _propDeInm(f) {
+  var id = String((f && f.propietarioId) || '').trim();
+  if (!id || !F.propietarios || !S.prop.lista) return null;
+  return _propPorId(id);
+}
+
+/** B: lead de propietario en etapa Captado → crea el propietario (o usa el que ya existe) y abre el inmueble vinculado. */
+function propDesdeLead(fila, btn) {
+  var f = S.leads && S.leads.filas.filter(function(x){ return String(x.fila) === String(fila); })[0];
+  if (!f) return;
+  var wa = String(f.whatsapp || '').replace(/\D/g, '');
+  var previo = btn ? btn.textContent : '';
+  var libre = function(){ if (btn) { btn.disabled = false; btn.textContent = previo; } };
+  if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+  _cargarPropietarios().catch(function(){ return []; }).then(function(lista){
+    // ¿Ya se creó el propietario de este lead? Se reutiliza (no se duplica).
+    var ex = (lista || []).filter(function(o){ return String(o.lead) === String(f.fila); })[0];
+    if (ex) return { id: ex.id, ya: true };
+    if (wa.length < 7) throw new Error('El lead no tiene un WhatsApp válido. Corrígelo antes de crear el propietario.');
+    return api({ accion: 'guardarPropietario', nombre: f.nombre, whatsapp: wa, origen: 'Lead', lead: String(f.fila),
+                 notas: 'Captado desde lead' + (f.origen ? ' (' + f.origen + ')' : '') + (f.fecha ? ' · ' + f.fecha : '') }).then(function(r){
+      if (r.duplicado) { var e = r.existente || {}; return _cargarPropietarios(true).then(function(){ return { id: e.id, ya: true }; }); }
+      if (!r.ok) throw new Error(r.error || 'No se pudo crear el propietario.');
+      var l = S.prop.lista || (S.prop.lista = []); l.push(r.propietario);
+      return { id: r.propietario.id, ya: false };
+    });
+  }).then(function(x){
+    libre();
+    _inmuebleDesdeLead(f, x.id);
+    toast(x.ya ? 'Propietario ya registrado: se vinculó al nuevo inmueble.' : 'Propietario creado. Completa el inmueble y guarda.');
+  }).catch(function(e){
+    libre();
+    toast('Error: ' + e.message, 6000);
+  });
+}
+
+function _inmuebleDesdeLead(f, propId) {
+  var o = _propPorId(propId) || { nombre: f.nombre, whatsapp: f.whatsapp };
+  var arr = f.operacion === 'Arrendar';
+  var pre = { estado: 'Disponible', servicio: arr ? 'Arriendo' : 'Venta', barrio: f.zona || '', encargado: o.nombre, celular: o.whatsapp };
+  var pd = soloDigitos(f.presupuesto || '');
+  if (pd) pre[arr ? 'canon' : 'precio'] = pd;
+  if (f.inmueble) pre.notasPrivadas = 'Lead: ' + f.inmueble;
+  _pp = { modo: 'auto', editId: '', q: '', pre: null };
+  abrirInmueble(null);
+  S.edicion.vals = pre;
+  elegirOrigen('Propio');
+  S.edicion.vals = { captacion: 'Propio' };     // lo prellenado cuenta como cambio por guardar
+  S.edicion.propId = propId;
+  marcarCambios();
+  verArchTab('prop');
+}
+
+/* C: ficha del propietario con todos sus inmuebles */
+var _ps = null;   // { id, modo: 'ver' | 'form' }
+function abrirPropSheet(id) {
+  var ir = function(){
+    if (!_propPorId(id)) { toast('No se encontró ese propietario.'); return; }
+    _ps = { id: id, modo: 'ver' };
+    _pintarPropSheet();
+    document.getElementById('capa-prop').hidden = false;
+    histAbrir();
+  };
+  if (S.prop.lista) ir(); else _cargarPropietarios().then(ir, function(e){ toast('Error: ' + e.message); });
+}
+function cerrarPropSheet(desdeHistorial) {
+  document.getElementById('capa-prop').hidden = true;
+  _ps = null;
+  if (!desdeHistorial) histCerrar();
+}
+function _pintarPropSheet() {
+  var cont = document.getElementById('ps-cuerpo');
+  var o = _ps && _propPorId(_ps.id);
+  if (!o) { cont.innerHTML = '<p class="prop-vacio">Este propietario ya no existe.</p>'; return; }
+  if (_ps.modo === 'form') {
+    cont.innerHTML =
+      '<div class="prop-form">'+
+      '<div class="campo"><label for="ps-nombre">Nombre *</label><input id="ps-nombre" type="text" autocomplete="off" maxlength="80" value="'+esc(o.nombre)+'"></div>'+
+      '<div class="campo"><label for="ps-wa">WhatsApp *</label><input id="ps-wa" type="tel" inputmode="tel" autocomplete="off" maxlength="20" value="'+esc(o.whatsapp)+'"></div>'+
+      '<div class="campo"><label for="ps-correo">Correo</label><input id="ps-correo" type="email" autocomplete="off" maxlength="80" value="'+esc(o.correo||'')+'"></div>'+
+      '<div class="campo"><label for="ps-doc">Documento de identidad (opcional)</label><input id="ps-doc" type="text" autocomplete="off" maxlength="30" value="'+esc(o.documento||'')+'"></div>'+
+      '<div class="campo"><label for="ps-notas">Notas</label><textarea id="ps-notas" rows="3" maxlength="2000">'+esc(o.notas||'')+'</textarea></div>'+
+      '<div class="prop-acc" style="margin-top:0"><span class="msg" id="ps-msg" style="flex:1;font-size:13px;color:var(--alerta)"></span>'+
+        '<button type="button" class="btn" onclick="_ps.modo=\'ver\';_pintarPropSheet()">Cancelar</button>'+
+        '<button type="button" class="btn btn-primario" id="ps-guardar" onclick="guardarPropSheet()">Guardar cambios</button></div>'+
+      '</div>';
+    return;
+  }
+  var wa = waUrl(o.whatsapp);
+  var inms = (S.inm && S.inm.filas || []).filter(function(x){ return String(x.propietarioId||'').trim() === o.id; })
+    .sort(function(a, b){ return (b._fila||0) - (a._fila||0); });
+  cont.innerHTML =
+    '<div class="prop-card">'+
+      '<div class="prop-nom">'+esc(o.nombre)+' <span class="etq-tipo">'+esc(o.id)+'</span></div>'+
+      '<div class="prop-dato">📱 '+(wa?'<a target="_blank" rel="noopener" href="'+esc(wa)+'">'+esc(o.whatsapp)+'</a>':esc(o.whatsapp))+'</div>'+
+      (o.correo?'<div class="prop-dato">✉️ '+esc(o.correo)+'</div>':'')+
+      (o.documento?'<div class="prop-dato">🪪 '+esc(o.documento)+'</div>':'')+
+      (o.notas?'<div class="prop-notas">'+esc(o.notas)+'</div>':'')+
+      '<div class="prop-acc">'+
+        (wa?'<a class="btn" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
+        '<button type="button" class="btn" onclick="_ps.modo=\'form\';_pintarPropSheet()">Editar datos</button>'+
+      '</div>'+
+    '</div>'+
+    '<h3 style="font-size:13px;margin:14px 0 2px">Inmuebles ('+inms.length+')</h3>'+
+    (inms.length ? inms.map(function(x){
+      var pr = x.precio ? formatPrecio(x.precio) : (x.canon ? formatPrecio(x.canon)+'/mes' : '');
+      return '<button type="button" class="ps-inm" data-fila="'+x._fila+'"><span><span class="n">'+esc([x.tipo,x.barrio].filter(Boolean).join(' · ')||x.id||'Inmueble')+'</span><br><span class="t">'+esc([x.id,x.estado,pr].filter(Boolean).join(' · '))+'</span></span><span>›</span></button>';
+    }).join('') : '<p class="prop-vacio">Aún no tiene inmuebles vinculados.</p>');
+  cont.querySelectorAll('.ps-inm').forEach(function(b){
+    b.onclick = function(){
+      // La ficha se oculta pero conserva su entrada de historial: el editor la reutiliza (un solo "atrás").
+      document.getElementById('capa-prop').hidden = true; _ps = null;
+      abrirInmueble(Number(b.dataset.fila));
+    };
+  });
+}
+function guardarPropSheet() {
+  var o = _ps && _propPorId(_ps.id); if (!o) return;
+  var v = function(k){ return document.getElementById('ps-'+k).value.trim(); };
+  var msg = document.getElementById('ps-msg');
+  var wa = v('wa').replace(/\D/g, '');
+  if (!v('nombre')) { msg.textContent = 'Escribe el nombre.'; return; }
+  if (wa.length < 7) { msg.textContent = 'El WhatsApp debe tener al menos 7 dígitos.'; return; }
+  var btn = document.getElementById('ps-guardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+  api({ accion: 'guardarPropietario', id: o.id, nombre: v('nombre'), whatsapp: wa, correo: v('correo'),
+        documento: v('doc'), notas: document.getElementById('ps-notas').value }).then(function(r){
+    if (!r.ok) throw new Error(r.error || 'Error');
+    var l = S.prop.lista; for (var i = 0; i < l.length; i++) { if (l[i].id === r.propietario.id) l[i] = r.propietario; }
+    toast('Propietario actualizado.');
+    if (_ps) { _ps.modo = 'ver'; _pintarPropSheet(); }
+    pintarInmuebles();
+  }).catch(function(e){
+    var m = document.getElementById('ps-msg'); if (m) m.textContent = e.message;
+    var b = document.getElementById('ps-guardar'); if (b) { b.disabled = false; b.textContent = 'Guardar cambios'; }
+  });
+}
+
 /* ============================================================
    DOCUMENTOS — gestión (columna "documentos")
    ============================================================ */
@@ -1837,10 +2535,11 @@ function _pintarDocs() {
    SUBIR ARCHIVOS (fotos e imágenes/PDFs de documentos)
    ============================================================ */
 function verArchTab(cual) {
-  ['fotos','docs'].forEach(function(k){
+  ['fotos','docs','prop'].forEach(function(k){
     document.getElementById('tab-'+k).setAttribute('aria-selected', cual===k);
     document.getElementById('panel-'+k).hidden = cual!==k;
   });
+  if (cual==='prop') _pintarPropietarioTab();
 }
 
 function subirArchivos(archivos, tipo) {
@@ -2011,7 +2710,7 @@ function llenarDesdeUrl() {
     // Fotos
     if (d.fotos && d.fotos.length) { _setFotos(d.fotos); n++; }
     // Campos
-    ['tipo','proyecto','barrio','ciudad','precio','canon','area','habitaciones','banos','parqueadero','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','encargado','celular','link'].forEach(function(clave){
+    ['tipo','proyecto','barrio','ciudad','precio','canon','area','areaPrivada','habitaciones','banos','parqueadero','plazas','piso','estrato','administracion','ascensor','estado','servicio','credito','observaciones','encargado','celular','link'].forEach(function(clave){
       var v = d[clave];
       if (v == null || v === '') return;
       var el = document.getElementById('f-'+clave);
@@ -2038,6 +2737,7 @@ function llenarDesdeUrl() {
    LEADS
    ============================================================ */
 function cargarLeads() {
+  if (!S.leads) pintarChipsLeads();   // muestra el inicio (con "…") mientras llegan los datos
   document.getElementById('lista-leads').innerHTML = '<p class="cargando">Cargando leads…</p>';
   S.cargando.leads = true;
   return api({ accion: 'leerLeads' }).then(function(r){
@@ -2057,8 +2757,8 @@ var TEMP_L = {verde:'Caliente',amarillo:'Se enfría',rojo:'Urgente',vencido:'Ven
 var HORAS  = {verde:48, amarillo:96, vencido:168};
 
 function temperatura(f) {
-  if (!f.fecha || ['Negocio cerrado','No calificado'].indexOf(f.pipeline)!==-1) return null;
-  if (['Calificado','Visita agendada'].indexOf(f.pipeline)!==-1) return null;
+  // Solo "se enfría" un lead que aún no se ha atendido (Nuevo / Contactado), en cualquier embudo.
+  if (!f.fecha || ['Nuevo','Contactado'].indexOf(f.pipeline)===-1) return null;
   var ms = new Date(f.fecha).getTime();
   if (!ms) return null;
   var h = (Date.now()-ms)/3600000;
@@ -2110,7 +2810,77 @@ function _inmLeadHtml(f) {
   return '<div><b>Inmueble:</b> '+(l?'<a target="_blank" rel="noopener" href="'+esc(l)+'">'+esc(f.inmueble)+'</a>':esc(f.inmueble))+'</div>';
 }
 
+/* ---- Embudos: Comprador / Propietario / Inquilino ---- */
+var LEAD_TIPOS = ['Comprador','Propietario','Inquilino'];
+var LEAD_TIPO_PLURAL = { Comprador:'Compradores', Propietario:'Propietarios', Inquilino:'Inquilinos' };
+var LEAD_ETAPAS = {
+  Comprador:   ['Nuevo','Contactado','Calificado','Visita agendada','Negociación','Negocio cerrado','No calificado'],
+  Propietario: ['Nuevo','Contactado','Visita de captación','Precio acordado','Captado','Publicado','Negocio cerrado','No calificado'],
+  Inquilino:   ['Nuevo','Contactado','Calificado','Visita agendada','Estudio','Contrato firmado','No calificado']
+};
+var LEAD_ORIGENES = ['Catálogo','Landing','TikTok','WhatsApp','Orgánico','Referido','Llamada o letrero','Otro'];
+/* Cómo se llaman los campos de la hoja según quién es el lead */
+var LEAD_ETQ = {
+  Comprador:   { inmueble:'Inmueble',        presupuesto:'Presupuesto',     ph1:'Ej. Apartamento en venta, Ciudad Jardín', ph2:'Ej. 300.000.000 o 250 a 300 millones' },
+  Propietario: { inmueble:'Su inmueble',     presupuesto:'Precio esperado', ph1:'Ej. Apartamento 85 m², Kachipay',         ph2:'Ej. 310.000.000 o canon 2.200.000' },
+  Inquilino:   { inmueble:'Qué busca',       presupuesto:'Canon máximo',    ph1:'Ej. Apartamento 2 hab',                   ph2:'Ej. 1.800.000' }
+};
+function tipoDe(f) { return LEAD_TIPOS.indexOf(f && f.tipo)!==-1 ? f.tipo : 'Comprador'; }
+function etapasDe(tipo) { return LEAD_ETAPAS[tipo] || LEAD_ETAPAS.Comprador; }
+function _leadsDelTipo() {
+  var filas = (S.leads && S.leads.filas) || [];
+  return F.etapasLeads ? filas.filter(function(f){ return tipoDe(f)===S.tipoLead; }) : filas;
+}
+
+var LEAD_TIPO_DESC = { Comprador:'Buscan comprar', Propietario:'Quieren vender o arrendar', Inquilino:'Buscan arrendar' };
+
+/** Muestra la pantalla de inicio (3 tipos) o la vista de un tipo. */
+function _aplicarVistaLeads() {
+  var emb = !!F.etapasLeads, hub = emb && !S.tipoLead;
+  document.getElementById('lead-hub').hidden = !hub;
+  document.getElementById('lead-vista').hidden = hub;
+  document.getElementById('cab-tipo').hidden = !(emb && S.tipoLead);
+  if (emb && S.tipoLead) {
+    document.getElementById('cab-tipo-titulo').textContent = LEAD_TIPO_PLURAL[S.tipoLead] + ' · ' + _leadsDelTipo().length;
+  }
+}
+
+function _pintarHubLeads() {
+  var filas = (S.leads && S.leads.filas) || [], cargado = !!S.leads;
+  var cuenta = {}, aten = {};
+  LEAD_TIPOS.forEach(function(t){ cuenta[t]=0; aten[t]=0; });
+  filas.forEach(function(f){
+    var t = tipoDe(f); cuenta[t]++;
+    if (['Nuevo','Contactado'].indexOf(f.pipeline)!==-1) aten[t]++;
+  });
+  var cont = document.getElementById('hub-cards');
+  cont.innerHTML = LEAD_TIPOS.map(function(t){
+    return '<button type="button" class="hub-card" data-v="'+t+'">'+
+      '<div class="hub-txt"><div class="hub-tit">'+LEAD_TIPO_PLURAL[t]+'</div>'+
+      '<div class="hub-des">'+LEAD_TIPO_DESC[t]+'</div>'+
+      (aten[t]?'<div class="hub-aten">'+aten[t]+' por atender'+'</div>':'')+'</div>'+
+      '<div class="hub-n">'+(cargado?cuenta[t]:'…')+'</div><span class="hub-flecha">›</span></button>';
+  }).join('');
+  cont.querySelectorAll('.hub-card').forEach(function(b){ b.onclick = function(){ abrirTipoLead(b.dataset.v); }; });
+}
+
+function abrirTipoLead(t, sinHistorial) {
+  if (!sinHistorial && !navDeshacer) { navIr({ pest: 'leads', tipo: t }, function () { abrirTipoLead(t, true); }); return; }
+  S.tipoLead = t; S.filtroLead = 'Nuevo'; S.filtroTemp = '';
+  document.getElementById('buscar-leads').value = '';
+  pintarChipsLeads(); pintarLeads();
+  window.scrollTo(0, 0);
+}
+function volverHubLeads(sinHistorial) {
+  if (!sinHistorial && !navDeshacer) { navIr({ pest: 'leads', tipo: '' }, function () { volverHubLeads(true); }); return; }
+  S.tipoLead = ''; S.filtroLead = 'Nuevo'; S.filtroTemp = '';
+  pintarChipsLeads();
+  window.scrollTo(0, 0);
+}
+
 function pintarChipsLeads() {
+  _aplicarVistaLeads();
+  if (F.etapasLeads && !S.tipoLead) { _pintarHubLeads(); return; }   // inicio: solo los 3 tipos
   // Plan Catálogo: lista simple, sin resumen de temperatura ni filtros por etapa
   if (!F.etapasLeads) {
     document.getElementById('temp-resumen').innerHTML = '';
@@ -2118,23 +2888,22 @@ function pintarChipsLeads() {
     return;
   }
   _pintarResumenTemp();
-  var r = S.leads, cuenta = {Todos: r.filas.length};
-  LC_CONFIG_ETAPAS.forEach(function(e){ cuenta[e] = 0; });
-  r.filas.forEach(function(f){ if(f.pipeline in cuenta) cuenta[f.pipeline]++; });
+  var etapas = etapasDe(S.tipoLead), filas = _leadsDelTipo();
+  var cuenta = {Todos: filas.length};
+  etapas.forEach(function(e){ cuenta[e] = 0; });
+  filas.forEach(function(f){ if(f.pipeline in cuenta) cuenta[f.pipeline]++; });
   var cont = document.getElementById('chips-leads');
-  cont.innerHTML = ['Todos'].concat(LC_CONFIG_ETAPAS).map(function(et){
-    return '<button class="chip" aria-pressed="'+(S.filtroLead===et)+'" data-v="'+esc(et)+'">'+esc(et)+' · '+(cuenta[et]||0)+'</button>';
+  cont.innerHTML = etapas.concat(['Todos']).map(function(et){
+    return '<button class="chip '+_claseChipEtapa(et)+'" aria-pressed="'+(S.filtroLead===et)+'" data-v="'+esc(et)+'">'+esc(et)+' · '+(cuenta[et]||0)+'</button>';
   }).join('');
   cont.querySelectorAll('.chip').forEach(function(b){
     b.onclick = function(){ S.filtroLead=b.dataset.v; pintarChipsLeads(); pintarLeads(); };
   });
 }
 
-var LC_CONFIG_ETAPAS = ['Nuevo','Contactado','Calificado','Visita agendada','Negocio cerrado','No calificado'];
-
 function _pintarResumenTemp() {
   var cuenta = {verde:0,amarillo:0,rojo:0,vencido:0};
-  (S.leads&&S.leads.filas||[]).forEach(function(f){ var t=temperatura(f); if(t) cuenta[t.nivel]++; });
+  _leadsDelTipo().forEach(function(f){ var t=temperatura(f); if(t) cuenta[t.nivel]++; });
   var cont = document.getElementById('temp-resumen');
   cont.innerHTML = Object.keys(cuenta).map(function(k){
     return '<button class="temp-caja '+k+'" data-v="'+k+'" aria-pressed="'+(S.filtroTemp===k)+'">'+
@@ -2147,13 +2916,15 @@ function _pintarResumenTemp() {
 
 function pintarLeads() {
   var r = S.leads; if (!r) return;
+  if (F.etapasLeads && !S.tipoLead) return;   // inicio: la lista se ve al elegir un tipo
   var q = norm(document.getElementById('buscar-leads').value);
   var filas = r.filas.filter(function(f){
     if (F.etapasLeads) {
-      if (S.filtroLead!=='Todos' && f.pipeline!==S.filtroLead) return false;
+      if (tipoDe(f)!==S.tipoLead) return false;
+      if (S.filtroLead!=='Todos' && (f.pipeline||'Nuevo')!==S.filtroLead) return false;
       if (S.filtroTemp) { var t=temperatura(f); if(!t||t.nivel!==S.filtroTemp) return false; }
     }
-    var campos = [f.nombre,f.whatsapp,f.inmueble,f.zona,f.origen];
+    var campos = [f.nombre,f.whatsapp,f.inmueble,f.zona,f.origen,f.tipo];
     if (F.etapasLeads) campos.push(f.notas);
     return !q || norm(campos.join(' ')).indexOf(q)!==-1;
   });
@@ -2163,25 +2934,42 @@ function pintarLeads() {
   if (F.etapasLeads) cont.querySelectorAll('.lead').forEach(wireLead);
 }
 
-function claseEtapa(e) { return 'e-'+(String(e||'').split(' ')[0]); }
+/** Color del chip por importancia: atención (naranja), bueno (verde), sin importancia (gris). */
+function _claseChipEtapa(et) {
+  var n = norm(et);
+  if (n === 'nuevo' || n === 'contactado' || n === 'visita agendada') return 'ch-aten';
+  if (n === 'calificado') return 'ch-ok';
+  if (n === 'negocio cerrado' || n === 'no calificado') return 'ch-gris';
+  return '';
+}
+function claseEtapa(e) { return 'e-'+String(e||'').split(' ')[0].normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+/** Líneas de datos del lead según su embudo (Propietario: precio esperado y qué quiere; Inquilino: canon). */
+function _leadDatosHtml(f) {
+  var t = tipoDe(f), q = LEAD_ETQ[t];
+  return '<div class="lead-datos">'+
+    // Comprador: link al inmueble que consultó + encargado/colega del portafolio. Otros embudos: texto libre.
+    (t==='Comprador' ? _inmLeadHtml(f)+colegaHtml(f) : (f.inmueble?'<div><b>'+q.inmueble+':</b> '+esc(f.inmueble)+'</div>':''))+
+    (f.presupuesto?'<div><b>'+q.presupuesto+':</b> '+esc(f.presupuesto)+'</div>':'')+
+    (f.zona?'<div><b>Zona:</b> '+esc(f.zona)+'</div>':'')+
+    (t==='Propietario'&&f.operacion?'<div><b>Quiere:</b> '+esc(f.operacion==='Arrendar'?'arrendar':'vender')+'</div>':'')+
+    (t==='Comprador'&&f.formaPago?'<div><b>Pago:</b> '+esc(f.formaPago)+'</div>':'')+
+  '</div>';
+}
 
 /** Tarjeta de lead del plan Catálogo: datos de contacto y WhatsApp, sin etapas ni notas. */
 function leadSimpleHtml(f) {
   var wa = waUrl(f.whatsapp);
-  return '<article class="lead">'+
+  return '<article class="lead" data-fila="'+esc(String(f.fila||''))+'">'+
     '<div class="lead-cab">'+
       '<div>'+
-        '<div class="nom">'+esc(f.nombre||'Sin nombre')+'</div>'+
+        '<div class="nom">'+esc(f.nombre||'Sin nombre')+(tipoDe(f)!=='Comprador'?'<span class="etq-tipo">'+esc(tipoDe(f))+'</span>':'')+'</div>'+
         '<div class="meta">'+esc([f.fecha,f.origen,f.whatsapp].filter(Boolean).join(' · '))+'</div>'+
       '</div>'+
       (wa?'<a class="wa" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
     '</div>'+
-    '<div class="lead-datos">'+
-      _inmLeadHtml(f)+colegaHtml(f)+
-      (f.presupuesto?'<div><b>Presupuesto:</b> '+esc(f.presupuesto)+'</div>':'')+
-      (f.zona?'<div><b>Zona:</b> '+esc(f.zona)+'</div>':'')+
-      (f.formaPago?'<div><b>Pago:</b> '+esc(f.formaPago)+'</div>':'')+
-    '</div>'+
+    _leadDatosHtml(f)+
+    '<div class="lead-fila"><button class="btn borrar-lead" title="Borrar este lead" aria-label="Borrar lead">🗑️ Borrar</button></div>'+
     '</article>';
 }
 
@@ -2190,7 +2978,8 @@ function leadHtml(f) {
   var temp = temperatura(f);
   var wa = waUrl(f.whatsapp);
   var m = String(f.enviado||'');
-  var ops = LC_CONFIG_ETAPAS.map(function(e){ return '<option'+(e===f.pipeline?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
+  var t = tipoDe(f);
+  var ops = etapasDe(t).map(function(e){ return '<option'+(e===f.pipeline?' selected':'')+'>'+esc(e)+'</option>'; }).join('');
   return '<article class="lead'+(temp?' t-'+temp.nivel:'')+'" data-fila="'+esc(String(f.fila||''))+'">'+
     '<div class="lead-cab">'+
       '<div>'+
@@ -2200,16 +2989,13 @@ function leadHtml(f) {
       '</div>'+
       (wa?'<a class="wa" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
     '</div>'+
-    '<div class="lead-datos">'+
-      _inmLeadHtml(f)+colegaHtml(f)+
-      (f.presupuesto?'<div><b>Presupuesto:</b> '+esc(f.presupuesto)+'</div>':'')+
-      (f.zona?'<div><b>Zona:</b> '+esc(f.zona)+'</div>':'')+
-      (f.formaPago?'<div><b>Pago:</b> '+esc(f.formaPago)+'</div>':'')+
-    '</div>'+
+    _leadDatosHtml(f)+
     '<div class="lead-fila">'+
       '<select class="etapa '+claseEtapa(f.pipeline)+'" aria-label="Etapa">'+ops+'</select>'+
       '<button class="btn btn-primario guardar">Guardar</button>'+
-      '<button class="btn crear-req" title="Crear requerimiento con datos de este lead">+ Req</button>'+
+      (t!=='Propietario'?'<button class="btn crear-req" title="Crear requerimiento con datos de este lead">+ Req</button>':'')+
+      '<button class="btn borrar-lead" title="Borrar este lead" aria-label="Borrar lead">🗑️</button>'+
+      (t==='Propietario' && F.propietarios && f.pipeline==='Captado' ? '<button class="btn crear-prop" title="Crea el propietario con los datos del lead y abre el inmueble ya vinculado">🏠 Crear propietario e inmueble</button>' : '')+
     '</div>'+
     (f.notas?'<div class="notas">'+esc(f.notas)+'</div>':'')+
     '<textarea class="nota" rows="1" placeholder="Agregar nota…"></textarea>'+
@@ -2221,8 +3007,40 @@ function wireLead(art) {
   var sel = art.querySelector('.etapa');
   sel.onchange = function(){ sel.className='etapa '+claseEtapa(sel.value); };
   art.querySelector('.guardar').onclick = function(){ guardarLead(art); };
-  art.querySelector('.crear-req').onclick = function(){ reqDesdeLead(art.dataset.fila); };
+  var br = art.querySelector('.crear-req');
+  if (br) br.onclick = function(){ reqDesdeLead(art.dataset.fila); };
+  var bp = art.querySelector('.crear-prop');
+  if (bp) bp.onclick = function(){ propDesdeLead(art.dataset.fila, bp); };
 }
+
+/** Borra definitivamente un lead (fila de la hoja). Pide confirmación. */
+function borrarLead(art) {
+  var fila = Number(art.dataset.fila);
+  var f = S.leads && S.leads.filas.filter(function(x){ return x.fila === fila; })[0];
+  if (!f) return;
+  var quien = (f.nombre || 'este lead') + (f.whatsapp ? ' (' + f.whatsapp + ')' : '');
+  if (!confirm('¿Borrar el lead de ' + quien + '? Se elimina de la hoja y no se puede deshacer.')) return;
+  var antes = S.leads.filas.slice();
+  // Se quita de la pantalla ya; al borrar una fila, las de abajo suben un puesto.
+  S.leads.filas = S.leads.filas.filter(function(x){ return x !== f; });
+  S.leads.filas.forEach(function(x){ if (x.fila > fila) x.fila--; });
+  document.getElementById('num-leads').textContent = S.leads.filas.length;
+  pintarChipsLeads(); pintarLeads();
+  toast('Lead borrado.');
+  enCola(api({ accion: 'eliminarLead', fila: fila, nombre: f.nombre || '', whatsapp: f.whatsapp || '' })).then(function(r){
+    if (!r.ok) throw new Error(r.error || 'Error');
+  }).catch(function(e){
+    toast('No se borró (' + e.message + '). Se recargan los leads.', 6000);
+    S.leads.filas = antes;
+    cargarLeads();
+  });
+}
+document.addEventListener('click', function(ev){
+  var b = ev.target.closest && ev.target.closest('.borrar-lead');
+  if (!b) return;
+  var art = b.closest('article.lead');
+  if (art) borrarLead(art);
+});
 
 function guardarLead(art) {
   var fila = Number(art.dataset.fila);
@@ -2242,6 +3060,82 @@ function guardarLead(art) {
     f.pipeline=antes.pipeline; f.notas=antes.notas;
     toast('No se guardó ('+e.message+'). Se devolvió el cambio.', 5000);
     pintarLeads();
+  });
+}
+
+
+/* ---- Nuevo lead a mano ---- */
+var _nl = null;   // { tipo, operacion, guardando }
+function abrirLead() {
+  _nl = { tipo: (F.etapasLeads && S.tipoLead) || 'Comprador', operacion: 'Vender', guardando: false };
+  ['nombre','wa','inmueble','presupuesto','zona','nota'].forEach(function(k){ document.getElementById('nl-'+k).value = ''; });
+  document.getElementById('nl-origen').innerHTML = LEAD_ORIGENES.map(function(o){ return '<option>'+esc(o)+'</option>'; }).join('');
+  document.getElementById('nl-msg').textContent = '';
+  document.getElementById('nl-guardar').disabled = false;
+  document.getElementById('nl-guardar').textContent = 'Guardar lead';
+  _pintarTiposLead();
+  document.getElementById('capa-lead').hidden = false;
+  histAbrir();
+  setTimeout(function(){ document.getElementById('nl-nombre').focus(); }, 60);
+}
+function _pintarTiposLead() {
+  var cont = document.getElementById('nl-tipos');
+  var textos = { Comprador:'Comprar', Propietario:'Es propietario', Inquilino:'Arrendar' };
+  cont.innerHTML = LEAD_TIPOS.map(function(t){
+    return '<button type="button" class="chip" aria-pressed="'+(_nl.tipo===t)+'" data-v="'+t+'">'+textos[t]+'</button>';
+  }).join('');
+  cont.querySelectorAll('.chip').forEach(function(b){ b.onclick = function(){ _nl.tipo = b.dataset.v; _pintarTiposLead(); }; });
+  var q = LEAD_ETQ[_nl.tipo];
+  document.getElementById('nl-l-inmueble').textContent = q.inmueble;
+  document.getElementById('nl-l-presupuesto').textContent = q.presupuesto;
+  document.getElementById('nl-inmueble').placeholder = q.ph1;
+  document.getElementById('nl-presupuesto').placeholder = q.ph2;
+  var esProp = _nl.tipo==='Propietario';
+  document.getElementById('nl-op-caja').hidden = !esProp;
+  if (esProp) {
+    var op = document.getElementById('nl-op');
+    op.innerHTML = ['Vender','Arrendar'].map(function(o){
+      return '<button type="button" class="chip" aria-pressed="'+(_nl.operacion===o)+'" data-v="'+o+'">'+o+'</button>';
+    }).join('');
+    op.querySelectorAll('.chip').forEach(function(b){ b.onclick = function(){ _nl.operacion = b.dataset.v; _pintarTiposLead(); }; });
+  }
+}
+function cerrarLead(desdeHistorial) {
+  document.getElementById('capa-lead').hidden = true;
+  _nl = null;
+  if (!desdeHistorial) histCerrar();
+}
+function guardarNuevoLead(forzar) {
+  if (!_nl || _nl.guardando) return;
+  var v = function(k){ return document.getElementById('nl-'+k).value.trim(); };
+  var msg = document.getElementById('nl-msg');
+  var nombre = v('nombre'), wa = v('wa').replace(/\D/g,'');
+  if (!nombre) { msg.textContent = 'Escribe el nombre.'; document.getElementById('nl-nombre').focus(); return; }
+  if (wa.length < 7) { msg.textContent = 'El WhatsApp debe tener al menos 7 dígitos.'; document.getElementById('nl-wa').focus(); return; }
+  msg.textContent = '';
+  var tipo = _nl.tipo;
+  var datos = { accion:'crearLead', tipo:tipo, operacion:_nl.operacion, nombre:nombre, whatsapp:wa,
+    origen:document.getElementById('nl-origen').value, inmueble:v('inmueble'), presupuesto:v('presupuesto'),
+    zona:v('zona'), nota:v('nota'), forzar: forzar===true };
+  var btn = document.getElementById('nl-guardar');
+  _nl.guardando = true; btn.disabled = true; btn.textContent = 'Guardando…';
+  api(datos).then(function(r){
+    if (r.duplicado) {
+      var e = r.existente || {};
+      var otra = confirm('Ya tienes a "'+(e.nombre||'este contacto')+'" ('+(e.tipo||tipo)+(e.pipeline?', '+e.pipeline:'')+') con ese WhatsApp.\n\n¿Crear otro lead de todos modos?');
+      if (otra) { _nl.guardando = false; _nl.reintento = true; btn.disabled = false; guardarNuevoLead(true); return; }
+      throw new Error('Ya existía; no se creó.');
+    }
+    if (!r.ok) throw new Error(r.error||'Error');
+    cerrarLead();
+    if (S.tipoLead) { S.tipoLead = tipo; S.filtroLead = 'Nuevo'; S.filtroTemp = ''; }   // en el inicio se queda en el inicio
+    toast('Lead guardado en '+LEAD_TIPO_PLURAL[tipo]+'.');
+    return cargarLeads();
+  }).catch(function(e){
+    if (_nl) { msg.textContent = e.message; _nl.guardando = false; }
+  }).then(function(){
+    if (_nl && _nl.reintento) { _nl.reintento = false; return; }   // el reintento (crear igual) sigue en curso
+    btn.disabled = false; btn.textContent = 'Guardar lead';
   });
 }
 
@@ -2480,6 +3374,7 @@ function cargarReqSilencioso() {
    INICIO DEL PANEL
    ============================================================ */
 function iniciarPanel() {
+  navIniciar();
   cargarInmuebles().then(function(){
     setTimeout(function(){
       if (!S.leads && !S.cargando.leads) cargarLeads();
