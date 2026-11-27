@@ -1847,7 +1847,11 @@ function _visibilidadCampos() {
   var asc   = !tipo || /apartamento|apartaestudio/i.test(tipo);
   var parq = valorCampo('parqueadero');
   var plz = !/^no/i.test(parq);   // "No tiene" → no se piden plazas
-  [['administracion', admin], ['ascensor', asc], ['plazas', plz]].forEach(function(par){
+  // Plazas, Área privada y Videos solo se piden si la hoja ya tiene esa columna (el backend la crea al
+  // instalarse). Así, un agente con backend viejo no llena datos que no se guardarían.
+  var hayCol = function(k) { return !S.inm || !S.inm.idx || S.inm.idx[k] !== undefined; };
+  [['administracion', admin], ['ascensor', asc], ['plazas', plz && hayCol('plazas')],
+   ['areaPrivada', hayCol('areaPrivada')], ['videos', hayCol('videos')]].forEach(function(par){
     var div = document.querySelector('#campos-publicos .campo[data-clave="'+par[0]+'"]');
     if (div) div.style.display = par[1] ? '' : 'none';
   });
